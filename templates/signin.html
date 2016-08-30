@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block head %}
+
+	<script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+	<script src="/js/bootstrap.min.js"></script>
+	<link type="text/css" rel="stylesheet" href="/stylesheets/bootstrap.min.css">
+	<link type="text/css" rel="stylesheet" href="/stylesheets/forms.css">
+	<title>
+		Dreamer Signin
+	</title>
+
+{% endblock %}
+
+{% block pageContent %}
+
+	<div class="row">
+		<div class="col-xs-12">
+			<h1>Signin to DreamNet</h1>
+		</div>
+	</div>
+
+	<div class="row">
+		<div class="col-xs-12">
+
+			<form action="/signin" method="post">
+
+				<div class="row">
+					<div class="col-xs-12 question">
+						<div class="prompt">
+							<span>Enter username:</span>
+						</div>
+						<div class="input">
+							<input type="text" label="Enter name:" name="name" placeholder="Name" {% if values %}value="{{values['name']}}"{% endif %}>{% if messages %}<span class="{{messages['name']['validity']}}">{{messages['name']['message']}}</span>{% endif %}
+						</div>
+					</div>
+				</div>
+
+				<div class="row">
+					<div class="col-xs-12 question">
+						<div class="prompt">
+							<span>Enter password:</span>
+						</div>
+						<div class="input">
+							<input type="password" name="password" placeholder="Password" {% if values %}value="{{values['password']}}"{% endif %}>{% if messages %}<span class="{{messages['password']['validity']}}">{{messages['password']['message']}}</span>{% endif %}
+						</div>
+					</div>
+				</div>
+
+				<br>
+				<input class="submit" type="submit" value="Sign in">
+			</form>
+
+		</div>
+	</div>
+
+{% endblock %}
+

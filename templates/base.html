@@ -1,0 +1,63 @@
+<DOCTYPE !html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+
+		{% block head %}
+
+       	<link type="text/css" rel="stylesheet" href="/stylesheets/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="/stylesheets/home.css">
+		<title>
+			Base Template
+		</title>
+
+		{% endblock %}
+	</head>
+
+	<body>
+
+		<div class="container">
+		<!-- start bootstrap container -->
+
+			<!-- start block for main page content -->
+			{% block pageContent %}
+
+			{% endblock %}
+			<!-- end block for main page content -->
+
+			<!-- start footer -->
+			{% block footer %}
+			<div class="nondream">
+
+				<div class="row">
+					<div class="col-xs-12">
+						<h4 class="dreamheader">Menu</h4>
+					</div>
+				</div>
+
+				<div class="row">
+					<div class="col-xs-12">
+						<p>
+							<a class="dreamlink" href="{{url_for('index')}}">Home</a> | 
+							{% if username %}
+								<a class="dreamlink" href="{{url_for('logout')}}">Sign out</a>
+							{% else %}
+								<a class="dreamlink" href="{{url_for('register')}}">Register a new account</a> | <a class="dreamlink" href="{{url_for('signin')}}">Sign in to an existing account</a>
+							{% endif %} | <a class="dreamlink" href="{{url_for('about')}}">About DreamNet</a>
+						</p>
+					</div>
+				</div>
+
+			</div>
+			{% endblock %}
+			<!-- end footer -->
+
+		</div>
+		<!-- end bootstrap container -->
+
+		{% block scripts %}
+
+		{% endblock %}
+
+	</body>
+</html>

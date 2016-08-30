@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block head %}
+
+		<link type="text/css" rel="stylesheet" href="/stylesheets/bootstrap.min.css">
+		<link type="text/css" rel="stylesheet" href="/stylesheets/home.css">
+		<title>
+			DreamNet Homepage
+		</title>
+
+{% endblock %}
+
+{% block pageContent %}
+
+	<div class="row">
+		<div class="col-xs-12">
+			<h1><span id="headerlogo"><img class="logo" id="headerlogoicon" src="/images/DreamNetIconGimp.png" alt="Picture of dream catcher">DreamNet</span></h1>
+		</div>
+	</div>
+
+	<div class="row" id="menu">
+		<div class="col-xs-12">
+			<p>
+				{% if username %}
+					<a href="{{url_for('newdream')}}">Post a dream</a> | <a href="{{url_for('logout')}}">Sign out</a>
+				{% else %}
+					<a href="{{url_for('register')}}">Register a new account</a> | <a href="{{url_for('signin')}}">Sign in to an existing account</a>
+				{% endif %}
+				 | <a href="{{url_for('about')}}">About DreamNet</a>
+			</p>
+		</div>
+	</div>
+
+	{% if username %}
+	<div class="row">
+		<div class="col-xs-12">
+			<h2 id="welcome-message">Knock knock, {{username}}...</h1>
+		</div>
+	</div>
+	{% endif %}
+
+	{% for dream in dreams %}
+	<div class="dream">
+
+		<div class="row">
+			<div class="col-xs-12">
+				<h2 class="title viewdream">&#10024 <a href="{{url_for('viewdream', id=dream.key().id()|string)}}">{{dream.title}}</a></h2>
+			</div>
+		</div>
+
+		<div class="row">
+			<div class="col-xs-12">
+				<p class="description">{{dream.description}}</p>
+			</div>
+		</div>
+
+		<div class="row">
+			<div class="col-xs-12 dreamstats">
+				<span class="dreamstat" id="types"><span class="dreamstatlabel">Types</span>: {% for genre in dream.genres %}<span class="genre">{{genre}} | </span>{% endfor %}</span> &#9633
+				<span class="dreamstat" id="dateposted"><span class="dreamstatlabel">Date posted</span>: {{dream.date_posted}}</span> &#9633
+				<span class="dreamstat" id="datedreamt"><span class="dreamstatlabel">Date dreamt</span>: {{dream.date_dreamt}}</span> &#9633
+				<span class="dreamstat" id="places"><span class="dreamstatlabel">Places involved</span>: {% for place in dream.places %}<span class="place">{{place}} | </span>{% endfor %}</span> &#9633
+				<span class="dreamstat" id="people"><span class="dreamstatlabel">People involved</span>: {% for person in dream.people %}<span class="person">{{person}} | </span>{% endfor %}</span> &#9633
+				<span class="dreamstat" id="lucidity"><span class="dreamstatlabel">Lucidity</span>: {{dream.lucidity}}</span> &#9633
+				<span class="dreamstat" id="lucidreason"><span class="dreamstatlabel">Lucid reason</span>: {{dream.lucid_reason}}</span> &#9633
+				<span class="dreamstat" id="control"><span class="dreamstatlabel">Control</span>: {{dream.control}}</span>
+			</div>
+		</div>
+
+		<div class="row">
+			<div class="col-xs-12">
+				<div class="awarenesslevel">
+					<a href="{{url_for('likedream', id=dream.key().id()|string)}}" id="awarenessbutton"><img class="likedream" id="awarenessicon" src="/images/awareness.svg" alt="[awareness.sgv]"></a>
+					<br>
+					> <span id="awarenessnumber">{{dream.awareness_level}}</span> dreamers now more aware</span>
+				</div>
+			</div>
+		</div>
+
+	</div>
+	{% endfor %}
+
+{% endblock %}
+
+{% block footer %}
+<!-- no footer -->
+{% endblock %}
+
