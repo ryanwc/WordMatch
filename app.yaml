@@ -1,13 +1,19 @@
-application: p4-refresh
+application: water-rain
 version: 1
 runtime: python27
 api_version: 1
 threadsafe: yes
 
 handlers:
-- url: /favicon\.ico
-  static_files: favicon.ico
-  upload: favicon\.ico
+- url: /stylesheets
+  secure: always
+  static_dir: stylesheets
+
+- url: /js
+  static_dir: js
+
+- url: /bower_components
+  static_dir: bower_components
 
 - url: /_ah/spi/.*
   script: api.api
@@ -18,9 +24,15 @@ handlers:
 - url: /crons/send_reminder
   script: main.app
 
+- url: (.*)
+  script: app.app
+
 libraries:
 - name: webapp2
   version: "2.5.2"
 
 - name: endpoints
+  version: latest
+
+- name: jinja2
   version: latest

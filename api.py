@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-`
 """api.py - Create and configure the Game API exposing the resources.
-This can also contain game logic. For more complex games it would be wise to
-move game logic to another file. Ideally the API will be simple, concerned
-primarily with communication to/from the API's users."""
-
+Concerned primarily with communication to/from the API's users."""
 
 import logging
 import endpoints
