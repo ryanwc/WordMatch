@@ -11,26 +11,39 @@ from google.appengine.ext import ndb
 class User(ndb.Model):
     """User profile"""
     name = ndb.StringProperty(required=True)
-    email =ndb.StringProperty()
+    email = ndb.StringProperty()
 
 
 class Game(ndb.Model):
     """Game object"""
-    target = ndb.IntegerProperty(required=True)
-    attempts_allowed = ndb.IntegerProperty(required=True)
-    attempts_remaining = ndb.IntegerProperty(required=True, default=5)
+    possible_matches = ndb.IntegerProperty(required=True)
+    language = ndb.StringProperty(require=True)
+    successful_matches = ndb.IntegerProperty(required=True)
+    match_attempts = ndb.IntegerProperty(required=True)
+    max_attempts = ndb.IntegerProperty(required=True)
     game_over = ndb.BooleanProperty(required=True, default=False)
+    demerits = ndb.IntegerProperty(required=True)
     user = ndb.KeyProperty(required=True, kind='User')
 
     @classmethod
-    def new_game(cls, user, min, max, attempts):
+    def new_game(user, language, size, match_attempt_goal):
         """Creates and returns a new game"""
-        if max < min:
-            raise ValueError('Maximum must be greater than minimum')
+        if not language in ["Español", "Deutsche", "ภาษาไทย"]:
+            raise ValueError('Language must be Spanish, German, or Thai')
+
+        if possible_matches > 50 or possible_matches < 1:
+            raise ValueError('Possible matches must at least 1 and at most 50')           
+
+        if not max_attempts >= total_matches:
+            raise ValueError('Max attempts must be greater '\
+                             'than or equal to possible matches')
+
         game = Game(user=user,
-                    target=random.choice(range(1, max + 1)),
-                    attempts_allowed=attempts,
-                    attempts_remaining=attempts,
+                    possible_matches=possible_matches,
+                    language=language,
+                    successful_matches=0,
+                    match_attempts=0,
+                    max_attempts=max_attempts,
                     game_over=False)
         game.put()
         return game
@@ -40,8 +53,13 @@ class Game(ndb.Model):
         form = GameForm()
         form.urlsafe_key = self.key.urlsafe()
         form.user_name = self.user.get().name
-        form.attempts_remaining = self.attempts_remaining
+        form.possible_matches = self.possible_matches
+        form.language = self.language
+        form.successful_matches = self.successful_matches
+        form.match_attempts = self.match_attempts
+        form.max_attempts = self.max_attempts
         form.game_over = self.game_over
+        form.demerits = self.demerits
         form.message = message
         return form
 
@@ -52,7 +70,9 @@ class Game(ndb.Model):
         self.put()
         # Add the game to the score 'board'
         score = Score(user=self.user, date=date.today(), won=won,
-                      guesses=self.attempts_allowed - self.attempts_remaining)
+            possible_matches=self.possible_matches,
+            percentage_matched=(self.successful_matches/self.possible_matches),
+            difficulty=(1-((self.max_attempts-self.possible_matches)/self.possible_matches)))
         score.put()
 
 
@@ -61,33 +81,44 @@ class Score(ndb.Model):
     user = ndb.KeyProperty(required=True, kind='User')
     date = ndb.DateProperty(required=True)
     won = ndb.BooleanProperty(required=True)
-    guesses = ndb.IntegerProperty(required=True)
+    percentage_matched = ndb.FloatProperty(required=True)
+    difficulty = ndb.FloatProperty(required=True)
+    demerits = ndb.IntegerProperty(required=True)
 
     def to_form(self):
         return ScoreForm(user_name=self.user.get().name, won=self.won,
-                         date=str(self.date), guesses=self.guesses)
+                         date=str(self.date),
+                         percentage_matched=self.percentage_matched,
+                         difficulty=self.difficulty, demerits=self.demerits)
 
 
 class GameForm(messages.Message):
     """GameForm for outbound game state information"""
     urlsafe_key = messages.StringField(1, required=True)
-    attempts_remaining = messages.IntegerField(2, required=True)
+    language = messages.IntegerField(2, required=True)
     game_over = messages.BooleanField(3, required=True)
     message = messages.StringField(4, required=True)
     user_name = messages.StringField(5, required=True)
-
+    language = messages.StringField(6, required=True)
+    possible_matches = messages.IntegerField(7, required=True)
+    successful_matches = messages.IntegerField(8, required=True)
+    match_attempts = messages.IntegerField(9, required=True)
+    max_attempts = messages.IntegerField(10, required=True)
+    demerits = messages.IntegerField(11, required=True)
 
 class NewGameForm(messages.Message):
     """Used to create a new game"""
     user_name = messages.StringField(1, required=True)
-    min = messages.IntegerField(2, default=1)
-    max = messages.IntegerField(3, default=10)
-    attempts = messages.IntegerField(4, default=5)
+    possible_matches = messages.IntegerField(2, required=True)
+    max_attempts = messages.IntegerField(3, required=True)
+    language = messages.StringField(4, required=True)
 
 
 class MakeMoveForm(messages.Message):
     """Used to make a move in an existing game"""
-    guess = messages.IntegerField(1, required=True)
+    this_text_key = messages.StringField(1, required=True)
+    card_key = messages.StringField(1, required=True)
+    is_second = messages.BooleanField(2, required=True)
 
 
 class ScoreForm(messages.Message):
@@ -95,8 +126,9 @@ class ScoreForm(messages.Message):
     user_name = messages.StringField(1, required=True)
     date = messages.StringField(2, required=True)
     won = messages.BooleanField(3, required=True)
-    guesses = messages.IntegerField(4, required=True)
-
+    percentage_matched = messages.FloatField(4, required=True)
+    difficulty = messages.FloatField(5, required=True)
+    demerits = messages.FloatField(6, required=True)
 
 class ScoreForms(messages.Message):
     """Return multiple ScoreForms"""

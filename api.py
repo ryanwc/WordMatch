@@ -22,10 +22,10 @@ MAKE_MOVE_REQUEST = endpoints.ResourceContainer(
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
                                            email=messages.StringField(2))
 
-MEMCACHE_MOVES_REMAINING = 'MOVES_REMAINING'
+MEMCACHE_MATCH_ATTEMPTS = 'MATCH_ATTEMPTS'
 
-@endpoints.api(name='guess_a_number', version='v1')
-class GuessANumberApi(remote.Service):
+@endpoints.api(name='word_match', version='v1')
+class WordMatchApi(remote.Service):
     """Game API"""
     @endpoints.method(request_message=USER_REQUEST,
                       response_message=StringMessage,
@@ -54,17 +54,15 @@ class GuessANumberApi(remote.Service):
             raise endpoints.NotFoundException(
                     'A User with that name does not exist!')
         try:
-            game = Game.new_game(user.key, request.min,
-                                 request.max, request.attempts)
+            game = Game.new_game(user.key, request.language_name)
         except ValueError:
-            raise endpoints.BadRequestException('Maximum must be greater '
-                                                'than minimum!')
+            raise endpoints.BadRequestException('Language invalid')
 
-        # Use a task queue to update the average attempts remaining.
+        # Use a task queue to update the average words typed.
         # This operation is not needed to complete the creation of a new game
         # so it is performed out of sequence.
         taskqueue.add(url='/tasks/cache_average_attempts')
-        return game.to_form('Good luck playing Guess a Number!')
+        return game.to_form('Good luck playing Word Match!')
 
     @endpoints.method(request_message=GET_GAME_REQUEST,
                       response_message=GameForm,
@@ -75,7 +73,7 @@ class GuessANumberApi(remote.Service):
         """Return the current game state."""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
         if game:
-            return game.to_form('Time to make a move!')
+            return game.to_form('Time to match some words!')
         else:
             raise endpoints.NotFoundException('Game not found!')
 
@@ -85,25 +83,27 @@ class GuessANumberApi(remote.Service):
                       name='make_move',
                       http_method='PUT')
     def make_move(self, request):
-        """Makes a move. Returns a game state with message"""
+        """Handler for attempted match. Returns a game state with message."""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
         if game.game_over:
             return game.to_form('Game already over!')
 
-        game.attempts_remaining -= 1
-        if request.guess == game.target:
-            game.end_game(True)
-            return game.to_form('You win!')
+        game.match_attempts += 1
 
-        if request.guess < game.target:
-            msg = 'Too low!'
+        if request.first_tile_card == game.second_tile_card:
+
+            msg = 'It\'s a match!'
+            game.matches_remaining -= 1
         else:
-            msg = 'Too high!'
 
-        if game.attempts_remaining < 1:
+            msg = 'No match...'
+
+        if game.matches_remaining < 1:
+
             game.end_game(False)
             return game.to_form(msg + ' Game over!')
         else:
+
             game.put()
             return game.to_form(msg)
 
@@ -135,19 +135,20 @@ class GuessANumberApi(remote.Service):
                       http_method='GET')
     def get_average_attempts(self, request):
         """Get the cached average moves remaining"""
-        return StringMessage(message=memcache.get(MEMCACHE_MOVES_REMAINING) or '')
+        return StringMessage(message=memcache.\
+            get(MEMCACHE_MATCH_ATTEMPTS) or '')
 
     @staticmethod
     def _cache_average_attempts():
-        """Populates memcache with the average moves remaining of Games"""
+        """Populates memcache with the average match attempts of Game"""
         games = Game.query(Game.game_over == False).fetch()
         if games:
             count = len(games)
-            total_attempts_remaining = sum([game.attempts_remaining
+            total_match_attempts = sum([game.words_typed
                                         for game in games])
-            average = float(total_attempts_remaining)/count
-            memcache.set(MEMCACHE_MOVES_REMAINING,
-                         'The average moves remaining is {:.2f}'.format(average))
+            average = float(total_words_typed)/count
+            memcache.set(MEMCACHE_WORDS_TYPED,
+                         'The average words typed is {:.2f}'.format(average))
 
 
-api = endpoints.api_server([GuessANumberApi])
+api = endpoints.api_server([WordMatchApi])
