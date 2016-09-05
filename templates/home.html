@@ -27,23 +27,14 @@
 	<div id="gamebox">
 
 		<div id="optionsdiv">
-
+			<select id="languageselect" data-bind="options: optionLanguages, optionsCaption: '-Select Language-, optionsText: 'name', value: inputLanguage"></select>
+			<!-- TO-DO: add input validation notes for user -->
+			<input id="matchesinput" data-bind="textInput: inputMatches">
+			<input id="maxattemptsinput" data-bind="textInput: inputMaxAttempts">
 		</div>
 
-		<div id="airdiv">
-
-		</div>
-
-		<div id="grounddiv">
-
-		</div>
-
-		<div id="typinginputdiv">
-
-		</div>
-
-		<div id="definitiondiv">
-
+		<div id="cardsdiv">
+			
 		</div>
 
 		<div id="statsdiv">
