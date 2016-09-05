@@ -14,15 +14,28 @@ class User(ndb.Model):
     email = ndb.StringProperty()
 
 
+class Language(ndb.Model):
+    """Language Object
+    Drastically reduce calls to datastore by holding cards as a 
+    dictionary within a Language Object instead of generating unique 
+    entities for each card"""
+    name = ndb.StringProperty(required=True)
+    cards = ndb.StringProperty(required=True)
+    '''
+    cards are stored as pickled list of dicts, where each dict is a card:
+    [{'id':uniqueID, 'front':'front string', 'back':'back string'}, ... etc]
+    '''
+
+
 class Game(ndb.Model):
     """Game object"""
     possible_matches = ndb.IntegerProperty(required=True)
-    language = ndb.StringProperty(require=True)
     successful_matches = ndb.IntegerProperty(required=True)
     match_attempts = ndb.IntegerProperty(required=True)
     max_attempts = ndb.IntegerProperty(required=True)
     game_over = ndb.BooleanProperty(required=True, default=False)
     demerits = ndb.IntegerProperty(required=True)
+    language = ndb.KeyProperty(required=True, kind='Language')
     user = ndb.KeyProperty(required=True, kind='User')
 
     @classmethod
@@ -54,7 +67,7 @@ class Game(ndb.Model):
         form.urlsafe_key = self.key.urlsafe()
         form.user_name = self.user.get().name
         form.possible_matches = self.possible_matches
-        form.language = self.language
+        form.language = self.language.get().name
         form.successful_matches = self.successful_matches
         form.match_attempts = self.match_attempts
         form.max_attempts = self.max_attempts
@@ -79,6 +92,7 @@ class Game(ndb.Model):
 class Score(ndb.Model):
     """Score object"""
     user = ndb.KeyProperty(required=True, kind='User')
+    language = ndb.KeyProperty(required=True, kind='Language')
     date = ndb.DateProperty(required=True)
     won = ndb.BooleanProperty(required=True)
     percentage_matched = ndb.FloatProperty(required=True)
@@ -87,7 +101,8 @@ class Score(ndb.Model):
 
     def to_form(self):
         return ScoreForm(user_name=self.user.get().name, won=self.won,
-                         date=str(self.date),
+                         date=str(self.date), 
+                         language_name=self.language.get().name,
                          percentage_matched=self.percentage_matched,
                          difficulty=self.difficulty, demerits=self.demerits)
 
@@ -106,6 +121,7 @@ class GameForm(messages.Message):
     max_attempts = messages.IntegerField(10, required=True)
     demerits = messages.IntegerField(11, required=True)
 
+
 class NewGameForm(messages.Message):
     """Used to create a new game"""
     user_name = messages.StringField(1, required=True)
@@ -116,8 +132,7 @@ class NewGameForm(messages.Message):
 
 class MakeMoveForm(messages.Message):
     """Used to make a move in an existing game"""
-    this_text_key = messages.StringField(1, required=True)
-    card_key = messages.StringField(1, required=True)
+    this_text_id = messages.IntegerField(1, required=True)
     is_second = messages.BooleanField(2, required=True)
 
 
@@ -129,6 +144,8 @@ class ScoreForm(messages.Message):
     percentage_matched = messages.FloatField(4, required=True)
     difficulty = messages.FloatField(5, required=True)
     demerits = messages.FloatField(6, required=True)
+    language = messages.StringField(7, required=True)
+
 
 class ScoreForms(messages.Message):
     """Return multiple ScoreForms"""
@@ -138,3 +155,32 @@ class ScoreForms(messages.Message):
 class StringMessage(messages.Message):
     """StringMessage-- outbound (single) string message"""
     message = messages.StringField(1, required=True)
+
+
+# populate the datastore with the Anki cards if nothing is there yet
+if not Language.query().get():
+
+    languages = ["German", "Thai", "Spanish"]
+
+    for language in languages
+
+        with open("Raw_"+language+".txt", "r") as raw_file:
+
+            card_id_counter = 0
+            cards = []
+
+            for line in raw_file:
+
+                cardDict = {}
+                card = line.split("\t")
+                cardDict["id"] = card_id_counter
+                cardDict["front"] = card[0]
+                cardDict["back"] = card[1]
+
+                cards.append(cardDict)
+                card_id_counter += 1
+
+            languageEntity = Language(name=language, cards=pickle.dumps(cards))
+            languageEntity.put()
+
+

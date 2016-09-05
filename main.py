@@ -31,7 +31,7 @@ class SendReminderEmail(webapp2.RequestHandler):
 class UpdateAverageMovesRemaining(webapp2.RequestHandler):
     def post(self):
         """Update game listing announcement in memcache."""
-        GuessANumberApi._cache_average_attempts()
+        WordMatchApi._cache_average_attempts()
         self.response.set_status(204)
 
 
