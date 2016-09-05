@@ -1,21 +1,9 @@
 /*
-*   Client-side WordRain application.
+*   Client-side WordMatch application.
 *
 *   Written with the KnockoutJS framework.
 *
 */
-
-/*
-*
-*   CSS manupilation that should not be done in .css file
-*
-*/
-setMapDivHeight();
-window.onresize = function(event) {
-    
-    setMapDivHeight();
-    setLocationLoadingPosition();
-};
 
 /*
 *
@@ -31,7 +19,7 @@ var viewModel;
 *
 */
 
-var Player = function (data) {
+var User = function (data) {
 
     var self = this;
 
@@ -39,14 +27,54 @@ var Player = function (data) {
     self.name = ko.observable(data["name"]);
 }
 
-var Word = function (data) {
+var Language = function(data) {
 
     var self = this;
 
     self.key = ko.observable(data["key"]);
-    self.text = ko.observable(data["text"]));
-    self.definition = ko.observable(data["definition"]);
+    self.name = ko.observable(data["name"]);
+}
+
+var Game = function(data) {
+
+    var self = this;
+
+    self.user = ko.observable(data["user"]);
     self.language = ko.observable(data["language"]);
+    self.possible_matches = ko.observable(data["possible_matches"]);
+    self.successful_matches = ko.observable(0);
+    self.match_attempts = ko.observable(0);
+    self.max_attempts = ko.observable(data["max_attempts"]);
+    self.game_over = ko.observable(data["game_over"]);
+    self.cards = ko.observableArray(data["cards"]);
+    self.demerits = ko.computedObservable(function() {
+
+        // is this expensive?
+        total = self.cards().reduce(function(previousValue().demerits(), 
+            currentValue().demerits(), currentIndex, array) {
+            return previousValue + currentValue;
+        });
+
+        return total;
+    });
+}
+
+var Card = function (data) {
+
+    var self = this;
+
+    self.id = ko.observable(data["key"]);
+    self.front = ko.observable(data["front"]));
+    self.front_position = ko.observable(data["front_position"]);
+    self.front_demerits = ko.observable(0);
+    self.back = ko.observable(data["back"]);
+    self.back_position = ko.observable(data["back_position"]);
+    self.back_demerits = ko.observable(0);
+
+    self.demerits = ko.computedObservable(function() {
+
+        return self.front_demerits() + self.back_demerits();
+    });
 }
 
 var Score = funtion (data) {
@@ -54,9 +82,13 @@ var Score = funtion (data) {
     var self = this;
 
     self.key = ko.observable(data["key"]);
-    self.player = ko.observable(data["key"]);
+    self.player = ko.observable(data["player"]);
+    self.language = ko.observable(data["date"]);
     self.date = ko.observable(data["date"]);
-    self.value = ko.observable(data["value"]);
+    self.won = ko.observable(data["won"]);
+    self.percentage_matched = ko.observable(data["percentage_matched"]);
+    self.difficulty = ko.observable(data["difficulty"]);
+    self.demerits = ko.observable(data["demerits"]);
 }
 
 /*
@@ -68,26 +100,17 @@ var ViewModel = function () {
 
     var self = this;
 
-    self.loadedWords = {};
-    self.currentGameWords = {};
-    self.seenWords = {};
-    self.completedWords = {};
-    self.activeWords = {};
-    self.currentScore = ko.observable(0);
+    self.user = ko.observable();
+    self.cards = ko.observableArray([]);
 
-    self.currentPlayer = ko.observable();
+    self.optionLanguages = ko.observableArray([]);
+    self.selectedLanguage = ko.observable();
+
+    self.currentScore = ko.observable();
+    self.highScores = ko.observableArray([]);
 
     // track all currently executing ajax requests
     self.currentAjaxCalls = {"word":{}};
-
-    // track current user selections
-    self.optionLanguages = ko.observable();
-    self.optionSpeeds = ko.observable();
-
-    self.selectedLanguage = ko.observable();
-    self.selectedSpeed = ko.observable();
-
-    self.highScores = ko.observableArray([]);
 
     /* helpers
     */
