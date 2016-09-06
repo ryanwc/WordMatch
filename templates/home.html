@@ -4,7 +4,7 @@
 
 	{{ super() }}
 	<meta name="google-site-verification" content="NTP3s5vk3p_XegMamJvIj1Bl0CGfOlZd0iZqr5_0wEE" />
-	<title>WaterGem - Find the Closest Cheap and Clean Drinking Water</title>
+	<title>WordMatch - Test your memory in different languages</title>
 	<link rel="stylesheet" href="stylesheets/home.css">
 
 {% endblock %}
@@ -13,7 +13,7 @@
 {% block header %}
 
 	<div class="outerdiv" id="logodiv">
-		<h1 id="headerlogo">WordRain</h1>
+		<h1 id="headerlogo">WordMatch</h1>
 	</div>
 
 	{{ super() }}
@@ -27,14 +27,29 @@
 	<div id="gamebox">
 
 		<div id="optionsdiv">
-			<select id="languageselect" data-bind="options: optionLanguages, optionsCaption: '-Select Language-, optionsText: 'name', value: inputLanguage"></select>
-			<!-- TO-DO: add input validation notes for user -->
+			<span>Select a language for the cards:</span>
+			<br>
+			<select id="languageselect" data-bind="options: optionLanguages, optionsCaption: '-Select Language-', optionsText: 'name', value: inputLanguage"></select>
+			<span class="inputerrormessage" id="matchesmessage" data-bind="visible: showBadLanguageMessage">Language mush be Español, Deutsche, or ภาษาไทย</span>
+			<br>
+			<br>
+			<span>Enter the number of total matches (number of cards x2) for the game:</span>
+			<br>
 			<input id="matchesinput" data-bind="textInput: inputMatches">
+			<span class="inputerrormessage" id="matchesmessage" data-bind="visible: showBadMatchesMessage">Matches must be a number greater than 0 and less than 37</span>
+			<br>
+			<br>
+			<span>Enter the maximum match attempts to allow before losing the game:</span>
+			<br>
 			<input id="maxattemptsinput" data-bind="textInput: inputMaxAttempts">
+			<span class="inputerrormessage" id="maxattemptsmessage" data-bind="visible: showBadMaxAttemptsMessage">Max attempts must be a number greater than or equal to the number of matches</span>
+			<br>
+			<br>
+			<button id="creategamebutton" data-bind="click: createGame">Create Game</button>
 		</div>
 
 		<div id="cardsdiv">
-			
+
 		</div>
 
 		<div id="statsdiv">
@@ -51,7 +66,7 @@
 
 	{{ super() }}
 
-{% endblock}
+{% endblock %}
 
 
 {% block scripts %}

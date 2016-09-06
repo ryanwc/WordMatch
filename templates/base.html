@@ -16,17 +16,14 @@
 		<!-- start header -->
 		{% block header %}
 
-		<div class="outerdiv" id="navigationlinksdiv">
-
-			<h4 id="navigationlinksheader">Menu</h4>
+		<div class="outerdiv" id="signindiv">
 
 			<p>
-				<a class="menulink" href="{{url_for('index')}}">Home</a> | 
 				{% if username %}
-					<a class="menulink" href="{{url_for('logout')}}">Sign out</a>
+					<a class="menulink" href="#">Sign out</a>
 				{% else %}
-					<a class="menulink" href="{{url_for('register')}}">Register a new account</a> | <a class="menulink" href="{{url_for('signin')}}">Sign in to an existing account</a>
-				{% endif %} | <a class="menulink" href="{{url_for('about')}}">About WaterGem</a>
+					<a class="menulink" href="#">Sign in with your Google account</a>
+				{% endif %}
 			</p>
 
 		</div>

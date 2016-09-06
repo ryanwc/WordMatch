@@ -20,7 +20,8 @@ import logging
 
 from api import WordMatchApi
 
-from models import User
+from models import User, Language, Score, Game
+from utils import ndb_Model_to_Dict
 
 import bleach
 
@@ -88,20 +89,24 @@ class Home(Handler):
         self.render("home.html")
 
 # Ajax handlers 
-class GetGems(Handler):
+class GetScores(Handler):
     ''' Handle requests for gems
     '''
     def get(self):
 
         queryParams = self.request.headers["queryParams"]
+        getHighScores = self.request.headers["getHighScores"]
         queryDict = {}
         
-        gems = Gem.query()
-        gems = gems.order(Gem.name)
+        scores = Score.query()
         properties = Gem._properties
 
         # filter iteratively
-        if queryParams:
+        if getHighScores:
+            
+            scores = scores.order()
+        elif queryParams:
+            
             queryDict = ast.literal_eval(queryParams)
 
             for param in queryDict:
@@ -109,28 +114,30 @@ class GetGems(Handler):
                 property = properties[param]
                 gems = gems.filter(property = queryDict[param])
 
-        gems = gems.fetch()
+        scores = scores.fetch()
         self.response.write(json.\
-            dumps([ndb_Model_to_Dict(gem) for gem in gems]))
+            dumps([ndb_Model_to_Dict(score) for score in scores]))
 
-class GetLanguage(Handler):
+class GetLanguages(Handler):
     ''' Handle requests for all kinds of locales
     '''
     def get(self):
 
-        name = self.request.headers["name"]
-        queryDict = {}
-        properties = None
-        locales = None
+        name = None
+        languages = None
 
-        language = Language.query("name =", name).fetch
+        if "name" in self.request.headers:
+            name = self.request.headers["name"]
+            languages = Language.query("name =", name).fetch()
+        else:
+            languages = Language.query().fetch()
 
         self.response.write(json.\
-            dumps([ndb_Model_to_Dict(locale) for locale in locales]))
+            dumps([ndb_Model_to_Dict(language) for language in languages]))
 
 class GetInstanceByKey(Handler):
     ''' Handle requests to get datastore entity by key
-    Theoretically should automatically use memcache if entity already queried
+    Should automatically use memcache if entity already queried
     '''
     def get(self):
 
@@ -150,11 +157,9 @@ app = webapp2.WSGIApplication([
     ('/tasks/cache_average_attempts', UpdateAverageMovesRemaining),
     webapp2.Route("/", handler=Home, name="index"),
     webapp2.Route("/home", handler=Home, name="index"),
-    webapp2.Route("/home/", handler=Home, name="index"),
-    webapp2.Route("/signin", handler=Signin, name="signin"),
-    webapp2.Route("/logout", handler=Logout, name="logout"),
-    webapp2.Route("/GetLanguage", handler=GetGems, name="getlangauge"),
-    webapp2.Route("/GetScores", handler=GetLocales, name="getscore"),
+    webapp2.Route("/home/", handler=Home, name="index"), 
+    webapp2.Route("/GetLanguages", handler=GetLanguages, name="getlangauges"),
+    webapp2.Route("/GetScores", handler=GetScores, name="getscores"),
     webapp2.Route("/GetByKey", handler=GetInstanceByKey, 
         name="getinstancebykey")
 ], debug=True)

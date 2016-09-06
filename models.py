@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """models.py - This file contains the class definitions for the Datastore
 entities used by the Game. Because these classes are also regular Python
 classes they can include methods (such as 'to_form' and 'new_game')."""
@@ -20,7 +22,7 @@ class Language(ndb.Model):
     dictionary within a Language Object instead of generating unique 
     entities for each card"""
     name = ndb.StringProperty(required=True)
-    cards = ndb.StringProperty(required=True)
+    cards = ndb.PickleProperty(required=True)
     '''
     cards are stored as pickled list of dicts, where each dict is a card:
     [{'id':uniqueID, 'front':'front string', 'back':'back string'}, ... etc]
@@ -31,9 +33,10 @@ class Game(ndb.Model):
     """Game object"""
     possible_matches = ndb.IntegerProperty(required=True)
     successful_matches = ndb.IntegerProperty(required=True)
-    match_attempts = ndb.IntegerProperty(required=True)
+    num_match_attempts = ndb.IntegerProperty(required=True)
+    match_attempts = ndb.PickleProperty(required=True)
     max_attempts = ndb.IntegerProperty(required=True)
-    game_over = ndb.BooleanProperty(required=True, default=False)
+    game_over = ndb.BooleanProperty(required=True)
     demerits = ndb.IntegerProperty(required=True)
     language = ndb.KeyProperty(required=True, kind='Language')
     user = ndb.KeyProperty(required=True, kind='User')
@@ -41,11 +44,17 @@ class Game(ndb.Model):
     @classmethod
     def new_game(user, language, size, match_attempt_goal):
         """Creates and returns a new game"""
-        if not language in ["Español", "Deutsche", "ภาษาไทย"]:
+
+        spanish = unicode(u"Español", "utf-8")
+        german = unicode(u"Deutsche", "utf-8")
+        thai = unicode(u"ภาษาไทย", "utf-8")
+        
+        if not language in [spanish, german, thai]:
             raise ValueError('Language must be Spanish, German, or Thai')
 
         if possible_matches > 50 or possible_matches < 1:
-            raise ValueError('Possible matches must at least 1 and at most 50')           
+            raise ValueError('Possible matches must be at least '\
+                             '1 and at most 50')
 
         if not max_attempts >= total_matches:
             raise ValueError('Max attempts must be greater '\
@@ -55,7 +64,8 @@ class Game(ndb.Model):
                     possible_matches=possible_matches,
                     language=language,
                     successful_matches=0,
-                    match_attempts=0,
+                    num_match_attempts=0,
+                    match_attempts=[],
                     max_attempts=max_attempts,
                     game_over=False)
         game.put()
@@ -69,6 +79,7 @@ class Game(ndb.Model):
         form.possible_matches = self.possible_matches
         form.language = self.language.get().name
         form.successful_matches = self.successful_matches
+        form.num_match_attempts = self.num_match_attempts
         form.match_attempts = self.match_attempts
         form.max_attempts = self.max_attempts
         form.game_over = self.game_over
@@ -117,9 +128,10 @@ class GameForm(messages.Message):
     language = messages.StringField(6, required=True)
     possible_matches = messages.IntegerField(7, required=True)
     successful_matches = messages.IntegerField(8, required=True)
-    match_attempts = messages.IntegerField(9, required=True)
-    max_attempts = messages.IntegerField(10, required=True)
-    demerits = messages.IntegerField(11, required=True)
+    num_match_attempts = messages.IntegerField(9, required=True)
+    match_attempts = messages.StringField(10, required=True)
+    max_attempts = messages.IntegerField(11, required=True)
+    demerits = messages.IntegerField(12, required=True)
 
 
 class NewGameForm(messages.Message):
@@ -162,7 +174,7 @@ if not Language.query().get():
 
     languages = ["German", "Thai", "Spanish"]
 
-    for language in languages
+    for language in languages:
 
         with open("Raw_"+language+".txt", "r") as raw_file:
 
@@ -180,7 +192,7 @@ if not Language.query().get():
                 cards.append(cardDict)
                 card_id_counter += 1
 
-            languageEntity = Language(name=language, cards=pickle.dumps(cards))
+            languageEntity = Language(name=language, cards=cards)
             languageEntity.put()
 
 
