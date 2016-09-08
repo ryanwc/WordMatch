@@ -4,7 +4,7 @@
 entities used by the Game. Because these classes are also regular Python
 classes they can include methods (such as 'to_form' and 'new_game')."""
 
-import random
+import json
 from datetime import date
 from protorpc import messages
 from google.appengine.ext import ndb
@@ -13,6 +13,7 @@ from google.appengine.ext import ndb
 class User(ndb.Model):
     """User profile"""
     name = ndb.StringProperty(required=True)
+    userID = ndb.IntegerProperty(required=True)
     email = ndb.StringProperty()
 
 
@@ -23,11 +24,14 @@ class Language(ndb.Model):
     entities for each card"""
     name = ndb.StringProperty(required=True)
     cards = ndb.PickleProperty(required=True)
-    '''
-    cards are stored as pickled list of dicts, where each dict is a card:
-    [{'id':uniqueID, 'front':'front string', 'back':'back string'}, ... etc]
-    '''
+    # cards are stored as pickled list of dicts, where each dict is a card:
+    # [{'id':uniqueID, 'front':'front string', 'back':'back string'}, ... etc]
 
+    def to_form(self, message):
+        """Returns a LanguageForm representation of the Game"""
+        return LanguageForm(urlsafe_key=self.key.urlsafe(),
+                            name=self.name,
+                            cards=json.dumps(self.cards))
 
 class Game(ndb.Model):
     """Game object"""
@@ -73,19 +77,17 @@ class Game(ndb.Model):
 
     def to_form(self, message):
         """Returns a GameForm representation of the Game"""
-        form = GameForm()
-        form.urlsafe_key = self.key.urlsafe()
-        form.user_name = self.user.get().name
-        form.possible_matches = self.possible_matches
-        form.language = self.language.get().name
-        form.successful_matches = self.successful_matches
-        form.num_match_attempts = self.num_match_attempts
-        form.match_attempts = self.match_attempts
-        form.max_attempts = self.max_attempts
-        form.game_over = self.game_over
-        form.demerits = self.demerits
-        form.message = message
-        return form
+        return GameForm(urlsafe_key=self.key.urlsafe(),
+                        user_name=self.user.get().name,
+                        possible_matches=self.possible_matches,
+                        language=self.language.get().name,
+                        successful_matches=self.successful_matches,
+                        num_match_attempts=self.num_match_attempts,
+                        match_attempts=json.dumps(self.match_attempts),
+                        max_attempts=self.max_attempts,
+                        game_over=self.game_over,
+                        demerits=self.demerits,
+                        message=message)
 
     def end_game(self, won=False):
         """Ends the game - if won is True, the player won. - if won is False,
@@ -121,17 +123,15 @@ class Score(ndb.Model):
 class GameForm(messages.Message):
     """GameForm for outbound game state information"""
     urlsafe_key = messages.StringField(1, required=True)
-    language = messages.IntegerField(2, required=True)
-    game_over = messages.BooleanField(3, required=True)
-    message = messages.StringField(4, required=True)
-    user_name = messages.StringField(5, required=True)
-    language = messages.StringField(6, required=True)
-    possible_matches = messages.IntegerField(7, required=True)
-    successful_matches = messages.IntegerField(8, required=True)
-    num_match_attempts = messages.IntegerField(9, required=True)
-    match_attempts = messages.StringField(10, required=True)
-    max_attempts = messages.IntegerField(11, required=True)
-    demerits = messages.IntegerField(12, required=True)
+    language = messages.StringField(2, required=True)
+    user_name = messages.StringField(3, required=True)
+    possible_matches = messages.IntegerField(4, required=True)
+    successful_matches = messages.IntegerField(5, required=True)
+    num_match_attempts = messages.IntegerField(6, required=True)
+    match_attempts = messages.StringField(7, required=True)
+    max_attempts = messages.IntegerField(8, required=True)
+    game_over = messages.BooleanField(9, required=True)
+    demerits = messages.IntegerField(10, required=True)
 
 
 class NewGameForm(messages.Message):
@@ -164,12 +164,24 @@ class ScoreForms(messages.Message):
     items = messages.MessageField(ScoreForm, 1, repeated=True)
 
 
+class LanguageForm(messages.Message):
+    """Language for outbound Language information"""
+    name = messages.StringField(1, required=True)
+    cards = messages.StringField(2, required=True)
+
+
+class Languages(messages.Message):
+    """Return multiple Languages"""
+    items = messages.MessageField(LanguageForm, 1, repeated=True)
+
+
 class StringMessage(messages.Message):
     """StringMessage-- outbound (single) string message"""
     message = messages.StringField(1, required=True)
 
 
-# populate the datastore with the Anki cards if nothing is there yet
+# populate the datastore with the Anki cards
+# and a default user if nothing is there yet
 if not Language.query().get():
 
     languages = ["German", "Thai", "Spanish"]
@@ -195,4 +207,7 @@ if not Language.query().get():
             languageEntity = Language(name=language, cards=cards)
             languageEntity.put()
 
+if not User.query().get():
 
+    defaultUser = User(name="Default User", userID=-1)
+    defaultUser.put()

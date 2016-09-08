@@ -120,7 +120,11 @@ var ViewModel = function () {
 
     self.showBadMatchesMessage = ko.computed(function() {
 
-        if (isNaN(self.inputMatches())) {
+        if (typeof self.inputMatches() == 'undefined') {
+
+            return false;
+        }
+        else if (isNaN(self.inputMatches())) {
 
             return true;
         }
@@ -141,7 +145,11 @@ var ViewModel = function () {
 
     self.showBadMaxAttemptsMessage = ko.computed(function() {
 
-        if (isNaN(self.inputMaxAttempts())) {
+        if (typeof self.inputMaxAttempts() == 'undefined') {
+
+            return false;
+        }
+        else if (isNaN(self.inputMaxAttempts())) {
 
             return true;
         }
@@ -162,56 +170,30 @@ var ViewModel = function () {
     self.currentScore = ko.observable();
     self.highScores = ko.observableArray([]);
 
-    // track all currently executing ajax requests
-    self.currentAjaxCalls = {"language":{}, "score":{}};
-
     /* helper
     */
 
-    self.abortAjaxCalls = function (type) {
-
-        if (type == "word") {
-
-            for (var key in self.currentAjaxCalls[type]) {
-
-                if (typeof key == "") {
-
-                    self.abortAjaxCall(self.currentAjaxCalls[type][key]);
-                    delete self.currentAjaxCalls[type][key];
-                }
-            }
-        }
-    };
-
-    self.abortAjaxCall = function (jqXHRObject) {
-
-        jqXHRObject.abort();
-    };
-
-    self.getLoadedGemName = function (gemKey) {
-
-        return self.loadedGems[gemKey].name();
-    };
+    // empty
 
     /* Custom listeners for selection changes
     */
 
     self.inputLanguage.subscribe(function(newSelection) {
 
-        self.resetGame(newSelection.name());
+        if (newSelection) {
+            
+            self.resetGame(newSelection.name());
+        }
     });
 
-    self.userName.subscribe(function(newName) {
-        // userName set by OAuth flow, so use id a from OAuth to get game name
-        // ideally would use user id 
-        // set user to new user name by creating or getting
+    self.userGoogleID.subscribe(function(newName) {
+        // userGoogleID set by OAuth flow, so now set the user
 
+        // set user by creating or getting from datastore
     });
 
     self.resetGame = function (language) {
-
-        self.abortAjaxCalls("language");
-        self.abortAjaxCalls("");       
+  
         self.resetWords(newSelection.name());
         self.currentScore(0);
     };
@@ -236,40 +218,41 @@ var ViewModel = function () {
     */
 
     self.populateLanguageOptions = function() {
-        // ajax query to server for initial country
+        // populate language options with all available languages
 
-        var ajaxLanguageCall = $.ajax({
-            type: "GET",
-            url: "/GetLanguages"
-        }).done(function(data) {
-            
-            var dataJSON = JSON.parse(data);
+        gapi.client.quoteendpoint.get_languages().execute(function(resp) {
 
-            for (var i = 0; i < dataJSON.length; i++) {
-            
-                language = new Language(dataJSON[i]);
-                self.optionLanguages.push(language);
+            if (!resp.code) {
+
+                /*
+                var dataJSON = JSON.parse(data);
+
+                for (var i = 0; i < dataJSON.length; i++) {
+                
+                    language = new Language(dataJSON[i]);
+                    self.optionLanguages.push(language);
+                }
+                self.optionLanguages.sort();
+                console.log(self.optionLanguages());
+                */
+
+                resp.items = resp.items || [];
+
+                console.log(resp.items);
             }
-            self.optionLanguages.sort();
-            console.log(self.optionLanguages());
-        }).fail(function(error) {
-
-            window.alert("Error retrieving languages from the server");
-        });
-
-        self.currentAjaxCalls["language"][ajaxLanguageCall] = true;
-        ajaxLanguageCall.complete(function() {
-
-            delete self.currentAjaxCalls["language"][ajaxLanguageCall];
         });
     };
 
+    self.loadEndpointsAPI = function() {
+
+        gapi.client.load('word_match', 'v1', self.populateLanguageOptions, 'http://localhost:8080/_ah/api');
+    }
 
     /* Initialization
     */
     (function() {
 
-        include("https://apis.google.com/js/client.js", self.populateLanguageOptions);
+        include("https://apis.google.com/js/client.js", self.loadEndpointsAPI);
         include("https://apis.google.com/js/api.js", handleClientLoad);
     })();
 }
@@ -296,6 +279,7 @@ function initAuth() {
     }).then(function () {
 
         signinButton.addEventListener("click", handleSigninClick);
+        signoutButton.addEventListener("click", handleSignoutClick);
     });
 }
 
@@ -307,13 +291,18 @@ function handleSigninClick(event) {
         console.log(gapi.auth2.getAuthInstance());
         console.log(gapi.auth2.getAuthInstance().isSignedIn.Ab);
 
-        updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn);
+        updateSigninStatus();
     });
 }
 
 function handleSignoutClick(event) {
 
-    gapi.auth2.getAuthInstance().signOut();
+    gapi.auth2.getAuthInstance().signOut().then(function() {
+
+        updateSigninStatus();
+        viewModel.signinMessage("Not signed in.");
+        viewModel.userGoogleID(null);       
+    });
 }
 
 function handleClientLoad() {
@@ -322,17 +311,20 @@ function handleClientLoad() {
 }
 
 
-function updateSigninStatus(isSignedIn) {
+function updateSigninStatus() {
 
-    console.log("triggered");
+    var isSignedIn = gapi.auth2.getAuthInstance().isSignedIn.Ab;
+    console.log("is signed in: " + isSignedIn);
+
     if (isSignedIn) {
 
-        var userName = gapi.auth2.getAuthInstance().isSignedIn.Ab.w3.ig;
+        var userName = gapi.auth2.getAuthInstance().currentUser.Ab.w3.ig;
+        var googleID = gapi.auth2.getAuthInstance().currentUser.Ab.El;
 
         signinButton.style.display = 'none';
         signoutButton.style.display = 'block';
-        viewModel.signeinMessage("Signed in as " + userName);
-        viewModel.userName(userName);
+        viewModel.signinMessage("Signed in as " + userName);
+        viewModel.userGoogleID(userName);
     } 
     else {
         

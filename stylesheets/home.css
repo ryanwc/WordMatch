@@ -1,4 +1,4 @@
-/* generic home styles for WordMatch game */
+/* home styles for WordMatch game */
 
 body {
 	background-color: #009900;
@@ -9,6 +9,36 @@ body {
 .inputerrormessage {
 	background-color: red;
 	color: white;
+}
+
+#signout-button {
+	display: none;
+}
+
+#optionsdiv {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+.optiondiv {
+	flex-basis: 100%;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+.inputerrormessage {
+	font-size: .8em;
+}
+
+#creategamebutton {
+	margin-top: 20px;
+}
+
+#optionsheadline {
+	text-decoration: underline;
+	margin-bottom: 10px;
 }
 
 /* stats */
