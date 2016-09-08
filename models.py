@@ -27,7 +27,7 @@ class Language(ndb.Model):
     # cards are stored as pickled list of dicts, where each dict is a card:
     # [{'id':uniqueID, 'front':'front string', 'back':'back string'}, ... etc]
 
-    def to_form(self, message):
+    def to_form(self):
         """Returns a LanguageForm representation of the Game"""
         return LanguageForm(urlsafe_key=self.key.urlsafe(),
                             name=self.name,
@@ -75,7 +75,7 @@ class Game(ndb.Model):
         game.put()
         return game
 
-    def to_form(self, message):
+    def to_form(self):
         """Returns a GameForm representation of the Game"""
         return GameForm(urlsafe_key=self.key.urlsafe(),
                         user_name=self.user.get().name,
@@ -113,11 +113,14 @@ class Score(ndb.Model):
     demerits = ndb.IntegerProperty(required=True)
 
     def to_form(self):
-        return ScoreForm(user_name=self.user.get().name, won=self.won,
+        return ScoreForm(urlsafe_key=self.key.urlsafe(),
+                         user_name=self.user.get().name, 
+                         won=self.won,
                          date=str(self.date), 
                          language_name=self.language.get().name,
                          percentage_matched=self.percentage_matched,
-                         difficulty=self.difficulty, demerits=self.demerits)
+                         difficulty=self.difficulty, 
+                         demerits=self.demerits)
 
 
 class GameForm(messages.Message):
@@ -150,13 +153,14 @@ class MakeMoveForm(messages.Message):
 
 class ScoreForm(messages.Message):
     """ScoreForm for outbound Score information"""
-    user_name = messages.StringField(1, required=True)
-    date = messages.StringField(2, required=True)
-    won = messages.BooleanField(3, required=True)
-    percentage_matched = messages.FloatField(4, required=True)
-    difficulty = messages.FloatField(5, required=True)
-    demerits = messages.FloatField(6, required=True)
-    language = messages.StringField(7, required=True)
+    urlsafe_key = messages.StringField(1, required=True)
+    user_name = messages.StringField(2, required=True)
+    date = messages.StringField(3, required=True)
+    won = messages.BooleanField(4, required=True)
+    percentage_matched = messages.FloatField(5, required=True)
+    difficulty = messages.FloatField(6, required=True)
+    demerits = messages.FloatField(7, required=True)
+    language = messages.StringField(8, required=True)
 
 
 class ScoreForms(messages.Message):
@@ -166,11 +170,12 @@ class ScoreForms(messages.Message):
 
 class LanguageForm(messages.Message):
     """Language for outbound Language information"""
-    name = messages.StringField(1, required=True)
-    cards = messages.StringField(2, required=True)
+    urlsafe_key = messages.StringField(1, required=True)
+    name = messages.StringField(2, required=True)
+    cards = messages.StringField(3, required=True)
 
 
-class Languages(messages.Message):
+class LanguageForms(messages.Message):
     """Return multiple Languages"""
     items = messages.MessageField(LanguageForm, 1, repeated=True)
 

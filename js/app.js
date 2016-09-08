@@ -12,6 +12,7 @@
 */
 
 var viewModel;
+var myGAPI;
 
 /*
 *
@@ -220,7 +221,7 @@ var ViewModel = function () {
     self.populateLanguageOptions = function() {
         // populate language options with all available languages
 
-        gapi.client.quoteendpoint.get_languages().execute(function(resp) {
+        gapi.client.word_match.get_languages().execute(function(resp) {
 
             if (!resp.code) {
 
@@ -245,15 +246,16 @@ var ViewModel = function () {
 
     self.loadEndpointsAPI = function() {
 
+        console.log("trying to load api");
+        console.log(gapi.client);
         gapi.client.load('word_match', 'v1', self.populateLanguageOptions, 'http://localhost:8080/_ah/api');
-    }
+    };
 
     /* Initialization
     */
     (function() {
 
-        include("https://apis.google.com/js/client.js", self.loadEndpointsAPI);
-        include("https://apis.google.com/js/api.js", handleClientLoad);
+        // nothing to do
     })();
 }
 
@@ -305,8 +307,9 @@ function handleSignoutClick(event) {
     });
 }
 
-function handleClientLoad() {
+function initOAuth() {
 
+    console.log("loading oauth2");
     gapi.load('client:auth2', initAuth);
 }
 
@@ -344,31 +347,10 @@ function setGameBoxHeight() {
     $("#gameboxpdiv").css({"height":width+"px"});
 }
 
-function include(filename, onload) {
+function initEndpointsAPI() {
 
-    console.log(filename);
-    console.log(onload);
-    var head = document.getElementsByTagName('head')[0];
-    var script = document.createElement('script');
-    script.src = filename;
-    script.type = 'text/javascript';
-    script.onload = script.onreadystatechange = function() {
-
-        if (script.readyState) {
-
-            if (script.readyState === 'complete' || script.readyState === 'loaded') {
-
-                script.onreadystatechange = null;                                                  
-                onload();
-            }
-        } 
-        else {
-
-            onload();          
-        }
-    };
-
-    head.appendChild(script);
+    console.log("loading endpoints");
+    viewModel.loadEndpointsAPI();
 }
 
 /*

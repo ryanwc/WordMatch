@@ -10,7 +10,7 @@ from google.appengine.api import taskqueue
 
 from models import User, Game, Score, Language
 from models import StringMessage, NewGameForm, GameForm, MakeMoveForm,\
-    ScoreForms
+    ScoreForms, LanguageForm, LanguageForms
 from utils import get_by_urlsafe
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
@@ -21,6 +21,7 @@ MAKE_MOVE_REQUEST = endpoints.ResourceContainer(
     urlsafe_game_key=messages.StringField(1),)
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
                                            email=messages.StringField(2))
+
 
 MEMCACHE_MATCH_ATTEMPTS = 'MATCH_ATTEMPTS'
 
@@ -138,6 +139,14 @@ class WordMatchApi(remote.Service):
         return StringMessage(message=memcache.\
             get(MEMCACHE_MATCH_ATTEMPTS) or '')
 
+    @endpoints.method(response_message=LanguageForms,
+                      path='languages',
+                      name='get_languages',
+                      http_method='GET')
+    def get_languages(self, request):
+        """Returns all available languages"""
+        return LanguageForms(items=[language.to_form() for language in Language.query()])
+
     @staticmethod
     def _cache_average_attempts():
         """Populates memcache with the average match attempts of Game"""
@@ -149,16 +158,6 @@ class WordMatchApi(remote.Service):
             average = float(total_words_typed)/count
             memcache.set(MEMCACHE_WORDS_TYPED,
                          'The average words typed is {:.2f}'.format(average))
-
-    @endpoints.method(request_message=GET_LANGUAGES_REQUEST,
-                      response_message=Languages,
-                      path='languages/{urlsafe_language}',
-                      name='get_user_scores',
-                      http_method='GET')
-    def get_languages(self, request):
-        """Returns all available languages"""
-        languages = Language.query().get()
-        return LanguageForms(items=[language.to_form() for language in languages])
 
 
 api = endpoints.api_server([WordMatchApi])
