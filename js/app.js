@@ -102,6 +102,9 @@ var ViewModel = function () {
     var self = this;
 
     self.user = ko.observable();
+    self.signinMessage = ko.observable("Not signed in.");
+    self.userGoogleID = ko.observable();
+
     self.cards = ko.observableArray([]);
 
     // track user input (game options)
@@ -198,6 +201,13 @@ var ViewModel = function () {
         self.resetGame(newSelection.name());
     });
 
+    self.userName.subscribe(function(newName) {
+        // userName set by OAuth flow, so use id a from OAuth to get game name
+        // ideally would use user id 
+        // set user to new user name by creating or getting
+
+    });
+
     self.resetGame = function (language) {
 
         self.abortAjaxCalls("language");
@@ -259,8 +269,76 @@ var ViewModel = function () {
     */
     (function() {
 
-        self.populateLanguageOptions();
+        include("https://apis.google.com/js/client.js", self.populateLanguageOptions);
+        include("https://apis.google.com/js/api.js", handleClientLoad);
     })();
+}
+
+/*
+*
+*   OAuth (not handled by KnockoutJS)
+*
+*/
+
+var apiKey = 'AIzaSyDjHnyHtyK_tM8N8VTznuITwakfO5DBYNo';
+var clientId = '510381281726-4dbug0nd52nj5eq6q1mopccr6ggs542u.apps.googleusercontent.com';
+var scopes = 'profile';
+var signinButton = document.getElementById('signin-button');
+var signoutButton = document.getElementById('signout-button');
+
+function initAuth() {
+
+    gapi.client.setApiKey(apiKey);
+    gapi.auth2.init({
+        
+        client_id: clientId,
+        scope: scopes
+    }).then(function () {
+
+        signinButton.addEventListener("click", handleSigninClick);
+    });
+}
+
+// Get authorization from the user to access profile info
+function handleSigninClick(event) {
+    
+    gapi.auth2.getAuthInstance().signIn().then(function() {
+        
+        console.log(gapi.auth2.getAuthInstance());
+        console.log(gapi.auth2.getAuthInstance().isSignedIn.Ab);
+
+        updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn);
+    });
+}
+
+function handleSignoutClick(event) {
+
+    gapi.auth2.getAuthInstance().signOut();
+}
+
+function handleClientLoad() {
+
+    gapi.load('client:auth2', initAuth);
+}
+
+
+function updateSigninStatus(isSignedIn) {
+
+    console.log("triggered");
+    if (isSignedIn) {
+
+        var userName = gapi.auth2.getAuthInstance().isSignedIn.Ab.w3.ig;
+
+        signinButton.style.display = 'none';
+        signoutButton.style.display = 'block';
+        viewModel.signeinMessage("Signed in as " + userName);
+        viewModel.userName(userName);
+    } 
+    else {
+        
+        signinButton.style.display = 'block';
+        signoutButton.style.display = 'none';
+    }
 }
 
 /*
@@ -272,6 +350,33 @@ function setGameBoxHeight() {
 
     var width = $("#gameboxdiv").width();
     $("#gameboxpdiv").css({"height":width+"px"});
+}
+
+function include(filename, onload) {
+
+    console.log(filename);
+    console.log(onload);
+    var head = document.getElementsByTagName('head')[0];
+    var script = document.createElement('script');
+    script.src = filename;
+    script.type = 'text/javascript';
+    script.onload = script.onreadystatechange = function() {
+
+        if (script.readyState) {
+
+            if (script.readyState === 'complete' || script.readyState === 'loaded') {
+
+                script.onreadystatechange = null;                                                  
+                onload();
+            }
+        } 
+        else {
+
+            onload();          
+        }
+    };
+
+    head.appendChild(script);
 }
 
 /*

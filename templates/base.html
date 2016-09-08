@@ -18,13 +18,12 @@
 
 		<div class="outerdiv" id="signindiv">
 
-			<p>
-				{% if username %}
-					<a class="menulink" href="#">Sign out</a>
-				{% else %}
-					<a class="menulink" href="#">Sign in with your Google account</a>
-				{% endif %}
-			</p>
+			<span id="signedinmessage" data-bind="signinMessage"></span>
+			<br>
+			<span>
+				<button id="signin-button">Sign in with your Google account</button>
+				<button id="signout-button">Sign out</button>
+			</span>
 
 		</div>
 
