@@ -10,7 +10,7 @@ from google.appengine.api import taskqueue
 
 from models import User, Game, Score, Language
 from models import StringMessage, NewGameForm, GameForm, MakeMoveForm,\
-    ScoreForms, LanguageForm, LanguageForms
+    ScoreForms, LanguageForm, LanguageForms, UserForm
 from utils import get_by_urlsafe
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
@@ -20,7 +20,9 @@ MAKE_MOVE_REQUEST = endpoints.ResourceContainer(
     MakeMoveForm,
     urlsafe_game_key=messages.StringField(1),)
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
-                                           email=messages.StringField(2))
+                                           user_google_id=messages.StringField(2),
+                                           email=messages.StringField(3))
+GET_USER_REQUEST = endpoints.ResourceContainer(user_google_id=messages.StringField(1))
 
 
 MEMCACHE_MATCH_ATTEMPTS = 'MATCH_ATTEMPTS'
@@ -31,17 +33,40 @@ class WordMatchApi(remote.Service):
     @endpoints.method(request_message=USER_REQUEST,
                       response_message=StringMessage,
                       path='user',
-                      name='create_user',
+                      name='create_user_from_google',
                       http_method='POST')
-    def create_user(self, request):
-        """Create a User. Requires a unique username"""
-        if User.query(User.name == request.user_name).get():
+    def create_user_from_google(self, request):
+        """Create a User from Google account info. 
+        Requires a unique Google account id."""
+
+        print "wefwvsadvasvsvwefwvsadvasvsvwefwvsadvasvsvwefwvsadvasvsvwefwvsadvasvsvwefwvsadvasvsvwefwvsadvasvsvwefwvsadvasvsvwefwvsadvasvsvwefwvsadvasvsv"
+        if User.query(User.google_id == request.user_google_id).get():
             raise endpoints.ConflictException(
-                    'A User with that name already exists!')
-        user = User(name=request.user_name, email=request.email)
+                    'A User with that google id already exists!')
+
+        user = User(name=request.user_name, email=request.email,
+                    google_id=request.user_google_id)
         user.put()
-        return StringMessage(message='User {} created!'.format(
-                request.user_name))
+
+        return UserForm(user.to_form)
+
+    @endpoints.method(request_message=GET_USER_REQUEST,
+                      response_message=UserForm,
+                      path='user',
+                      name='get_user_from_google_id',
+                      http_method='GET')
+    def get_user_from_google_id(self, request):
+        """Get a user by the user's google account ID"""
+        user = User.query(User.google_id == request.user_google_id).get()
+        
+        print request.user_google_id
+        print "hereherehereherehereherehereherehereherehere"
+        
+        if not user:
+            message = 'No user with the id "%s" exists.' % request.user_google_id
+            raise endpoints.NotFoundException(message)
+
+        return UserForm(user.to_form);
 
     @endpoints.method(request_message=NEW_GAME_REQUEST,
                       response_message=GameForm,

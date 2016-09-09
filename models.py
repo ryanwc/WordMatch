@@ -13,9 +13,15 @@ from google.appengine.ext import ndb
 class User(ndb.Model):
     """User profile"""
     name = ndb.StringProperty(required=True)
-    userID = ndb.IntegerProperty(required=True)
+    google_id = ndb.StringProperty(required=True)
     email = ndb.StringProperty()
 
+    def to_form(self):
+        """Returns a UserForm representation of the User"""
+        return UserForm(urlsafe_key=self.key.urlsafe(),
+                        name=self.name,
+                        google_id=self.google_id,
+                        email=self.email)
 
 class Language(ndb.Model):
     """Language Object
@@ -28,7 +34,7 @@ class Language(ndb.Model):
     # [{'id':uniqueID, 'front':'front string', 'back':'back string'}, ... etc]
 
     def to_form(self):
-        """Returns a LanguageForm representation of the Game"""
+        """Returns a LanguageForm representation of the Language"""
         return LanguageForm(urlsafe_key=self.key.urlsafe(),
                             name=self.name,
                             cards=json.dumps(self.cards))
@@ -123,6 +129,13 @@ class Score(ndb.Model):
                          demerits=self.demerits)
 
 
+class UserForm(messages.Message):
+    """UserForm for outbound user information"""
+    urlsafe_key = messages.StringField(1, required=True)
+    name = messages.StringField(2, required=True)
+    google_id = messages.StringField(3, required=True)
+    email = messages.StringField(4)
+
 class GameForm(messages.Message):
     """GameForm for outbound game state information"""
     urlsafe_key = messages.StringField(1, required=True)
@@ -135,6 +148,7 @@ class GameForm(messages.Message):
     max_attempts = messages.IntegerField(8, required=True)
     game_over = messages.BooleanField(9, required=True)
     demerits = messages.IntegerField(10, required=True)
+    google_id = messages.StringField(11, required=True)
 
 
 class NewGameForm(messages.Message):

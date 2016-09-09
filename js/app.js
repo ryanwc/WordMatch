@@ -32,8 +32,9 @@ var Language = function(data) {
 
     var self = this;
 
-    self.key = ko.observable(data["key"]);
+    self.key = ko.observable(data["urlsafe_key"]);
     self.name = ko.observable(data["name"]);
+    self.cards = ko.observable(data["cards"]);
 }
 
 var Game = function(data) {
@@ -102,9 +103,18 @@ var ViewModel = function () {
 
     var self = this;
 
-    self.user = ko.observable();
-    self.signinMessage = ko.observable("Not signed in.");
-    self.userGoogleID = ko.observable();
+    self.user = ko.observable(null);
+    self.signinMessage = ko.computed(function() {
+
+        if (self.user()) {
+
+            return "Signed in as " + self.user().name();
+        }
+        else {
+
+            return "Not signed in.";
+        }
+    });
 
     self.cards = ko.observableArray([]);
 
@@ -174,7 +184,56 @@ var ViewModel = function () {
     /* helper
     */
 
-    // empty
+    self.signoutUser = function () {
+
+        self.user(null);
+    }
+
+    self.signinUserFromGoogle = function (google_user_name, google_id, email) {
+
+        self.signoutUser();
+
+        var id_resource = {'resource': {'user_google_id': toString(google_id)}};
+
+        gapi.client.word_match.get_user_from_google_id(id_resource).execute(function(resp) {
+
+            console.log(resp);
+
+            if (!resp.code) {
+                // user already created in server
+                resp.items = resp.items || [];
+
+                console.log(resp.items);
+
+                user = new User(name=resp.items.name, email=resp.items.email,
+                    google_id=google_id);
+
+                self.user(user);
+            }
+            else {
+                // create user on server
+                
+                var user_resource = {'resource': {'user_name': google_user_name, 
+                                                  'user_google_id': toString(google_id),
+                                                  'email': email}
+                                    }
+                gapi.client.word_match.create_user_from_google(user_resource).execute(function(resp) {
+                
+                    if (!resp.code) {
+
+                        resp.items = resp.items || [];
+
+                        console.log(resp.items);
+
+                        user = new User(name=resp.items.name, email=resp.items.email,
+                            google_id=google_id);
+
+                        self.user(user);
+                    }
+                });
+            }
+        });
+    }
 
     /* Custom listeners for selection changes
     */
@@ -185,12 +244,6 @@ var ViewModel = function () {
             
             self.resetGame(newSelection.name());
         }
-    });
-
-    self.userGoogleID.subscribe(function(newName) {
-        // userGoogleID set by OAuth flow, so now set the user
-
-        // set user by creating or getting from datastore
     });
 
     self.resetGame = function (language) {
@@ -215,7 +268,7 @@ var ViewModel = function () {
         // TO-DO: start game logic
     };
 
-    /* API Calls
+    /* Initialization
     */
 
     self.populateLanguageOptions = function() {
@@ -223,39 +276,33 @@ var ViewModel = function () {
 
         gapi.client.word_match.get_languages().execute(function(resp) {
 
+            console.log(resp);
+
             if (!resp.code) {
-
-                /*
-                var dataJSON = JSON.parse(data);
-
-                for (var i = 0; i < dataJSON.length; i++) {
-                
-                    language = new Language(dataJSON[i]);
-                    self.optionLanguages.push(language);
-                }
-                self.optionLanguages.sort();
-                console.log(self.optionLanguages());
-                */
 
                 resp.items = resp.items || [];
 
-                console.log(resp.items);
+                for (var i = 0; i < resp.items.length; i++) {
+
+                    language = new Language(resp.items[i]);
+                    self.optionLanguages.push(language);
+                }
+
+                self.optionLanguages.sort();
             }
         });
     };
 
     self.loadEndpointsAPI = function() {
 
-        console.log("trying to load api");
-        console.log(gapi.client);
         gapi.client.load('word_match', 'v1', self.populateLanguageOptions, 'http://localhost:8080/_ah/api');
     };
 
-    /* Initialization
-    */
     (function() {
+        // run on instance creation
 
         // nothing to do
+
     })();
 }
 
@@ -289,9 +336,6 @@ function initAuth() {
 function handleSigninClick(event) {
     
     gapi.auth2.getAuthInstance().signIn().then(function() {
-        
-        console.log(gapi.auth2.getAuthInstance());
-        console.log(gapi.auth2.getAuthInstance().isSignedIn.Ab);
 
         updateSigninStatus();
     });
@@ -309,7 +353,6 @@ function handleSignoutClick(event) {
 
 function initOAuth() {
 
-    console.log("loading oauth2");
     gapi.load('client:auth2', initAuth);
 }
 
@@ -317,20 +360,23 @@ function initOAuth() {
 function updateSigninStatus() {
 
     var isSignedIn = gapi.auth2.getAuthInstance().isSignedIn.Ab;
-    console.log("is signed in: " + isSignedIn);
 
     if (isSignedIn) {
 
-        var userName = gapi.auth2.getAuthInstance().currentUser.Ab.w3.ig;
-        var googleID = gapi.auth2.getAuthInstance().currentUser.Ab.El;
+        console.log(gapi.auth2.getAuthInstance().currentUser);
+
+        var google_user_name = gapi.auth2.getAuthInstance().currentUser.Ab.w3.ig;
+        var google_id = gapi.auth2.getAuthInstance().currentUser.Ab.El;
+        var email = gapi.auth2.getAuthInstance().currentUser.Ab.w3.U3;
+
+        viewModel.signinUserFromGoogle(google_user_name, google_id, email);
 
         signinButton.style.display = 'none';
         signoutButton.style.display = 'block';
-        viewModel.signinMessage("Signed in as " + userName);
-        viewModel.userGoogleID(userName);
     } 
     else {
         
+        viewModel.signoutUser();
         signinButton.style.display = 'block';
         signoutButton.style.display = 'none';
     }
@@ -349,7 +395,6 @@ function setGameBoxHeight() {
 
 function initEndpointsAPI() {
 
-    console.log("loading endpoints");
     viewModel.loadEndpointsAPI();
 }
 
