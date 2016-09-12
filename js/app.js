@@ -104,8 +104,10 @@ var ViewModel = function () {
     var self = this;
 
     self.user = ko.observable(null);
+
     self.signinMessage = ko.computed(function() {
 
+        console.log("fired");
         if (self.user()) {
 
             return "Signed in as " + self.user().name();
@@ -193,20 +195,16 @@ var ViewModel = function () {
 
         self.signoutUser();
 
-        var id_resource = {'resource': {'user_google_id': toString(google_id)}};
+        var id_resource = {'resource': {'user_google_id': google_id}};
+
+        console.log(id_resource);
 
         gapi.client.word_match.get_user_from_google_id(id_resource).execute(function(resp) {
 
-            console.log(resp);
-
-            if (!resp.code) {
+            if (resp.name) {
                 // user already created in server
-                resp.items = resp.items || [];
 
-                console.log(resp.items);
-
-                user = new User(name=resp.items.name, email=resp.items.email,
-                    google_id=google_id);
+                user = new User(resp);
 
                 self.user(user);
             }
@@ -214,19 +212,15 @@ var ViewModel = function () {
                 // create user on server
                 
                 var user_resource = {'resource': {'user_name': google_user_name, 
-                                                  'user_google_id': toString(google_id),
+                                                  'user_google_id': google_id,
                                                   'email': email}
                                     }
+
                 gapi.client.word_match.create_user_from_google(user_resource).execute(function(resp) {
                 
-                    if (!resp.code) {
+                    if (resp.name) {
 
-                        resp.items = resp.items || [];
-
-                        console.log(resp.items);
-
-                        user = new User(name=resp.items.name, email=resp.items.email,
-                            google_id=google_id);
+                        user = new User(resp);
 
                         self.user(user);
                     }
@@ -368,6 +362,10 @@ function updateSigninStatus() {
         var google_user_name = gapi.auth2.getAuthInstance().currentUser.Ab.w3.ig;
         var google_id = gapi.auth2.getAuthInstance().currentUser.Ab.El;
         var email = gapi.auth2.getAuthInstance().currentUser.Ab.w3.U3;
+
+        console.log(google_user_name);
+        console.log(google_id);
+        console.log(email);
 
         viewModel.signinUserFromGoogle(google_user_name, google_id, email);
 

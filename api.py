@@ -13,7 +13,7 @@ from models import StringMessage, NewGameForm, GameForm, MakeMoveForm,\
     ScoreForms, LanguageForm, LanguageForms, UserForm
 from utils import get_by_urlsafe
 
-NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
+NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm,)
 GET_GAME_REQUEST = endpoints.ResourceContainer(
         urlsafe_game_key=messages.StringField(1),)
 MAKE_MOVE_REQUEST = endpoints.ResourceContainer(
@@ -21,8 +21,8 @@ MAKE_MOVE_REQUEST = endpoints.ResourceContainer(
     urlsafe_game_key=messages.StringField(1),)
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
                                            user_google_id=messages.StringField(2),
-                                           email=messages.StringField(3))
-GET_USER_REQUEST = endpoints.ResourceContainer(user_google_id=messages.StringField(1))
+                                           email=messages.StringField(3),)
+GET_USER_REQUEST = endpoints.ResourceContainer(user_google_id=messages.StringField(1),)
 
 
 MEMCACHE_MATCH_ATTEMPTS = 'MATCH_ATTEMPTS'
@@ -31,7 +31,7 @@ MEMCACHE_MATCH_ATTEMPTS = 'MATCH_ATTEMPTS'
 class WordMatchApi(remote.Service):
     """Game API"""
     @endpoints.method(request_message=USER_REQUEST,
-                      response_message=StringMessage,
+                      response_message=UserForm,
                       path='user',
                       name='create_user_from_google',
                       http_method='POST')
@@ -39,7 +39,6 @@ class WordMatchApi(remote.Service):
         """Create a User from Google account info. 
         Requires a unique Google account id."""
 
-        print "wefwvsadvasvsvwefwvsadvasvsvwefwvsadvasvsvwefwvsadvasvsvwefwvsadvasvsvwefwvsadvasvsvwefwvsadvasvsvwefwvsadvasvsvwefwvsadvasvsvwefwvsadvasvsv"
         if User.query(User.google_id == request.user_google_id).get():
             raise endpoints.ConflictException(
                     'A User with that google id already exists!')
@@ -48,13 +47,19 @@ class WordMatchApi(remote.Service):
                     google_id=request.user_google_id)
         user.put()
 
-        return UserForm(user.to_form)
+        # if i do return 'UserForm(user.to_form())', it fails with the message:
+        # '__init__() takes exactly 1 argument, received 2'.
+        # returning LanguageForms (repeated LangueageForm) works fine
+        return UserForm(urlsafe_key=user.key.urlsafe(),
+                        name=user.name,
+                        google_id=user.google_id,
+                        email=user.email)
 
     @endpoints.method(request_message=GET_USER_REQUEST,
                       response_message=UserForm,
-                      path='user',
+                      path='getuser',
                       name='get_user_from_google_id',
-                      http_method='GET')
+                      http_method='POST')
     def get_user_from_google_id(self, request):
         """Get a user by the user's google account ID"""
         user = User.query(User.google_id == request.user_google_id).get()
@@ -66,7 +71,13 @@ class WordMatchApi(remote.Service):
             message = 'No user with the id "%s" exists.' % request.user_google_id
             raise endpoints.NotFoundException(message)
 
-        return UserForm(user.to_form);
+        # if i do return 'UserForm(user.to_form())', it fails with the message:
+        # '__init__() takes exactly 1 argument, received 2'.
+        # returning LanguageForms (repeated LangueageForm) works fine
+        return UserForm(urlsafe_key=user.key.urlsafe(),
+                        name=user.name,
+                        google_id=user.google_id,
+                        email=user.email)
 
     @endpoints.method(request_message=NEW_GAME_REQUEST,
                       response_message=GameForm,

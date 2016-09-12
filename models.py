@@ -13,7 +13,7 @@ from google.appengine.ext import ndb
 class User(ndb.Model):
     """User profile"""
     name = ndb.StringProperty(required=True)
-    google_id = ndb.StringProperty(required=True)
+    google_id = ndb.StringProperty()
     email = ndb.StringProperty()
 
     def to_form(self):
@@ -134,7 +134,7 @@ class UserForm(messages.Message):
     urlsafe_key = messages.StringField(1, required=True)
     name = messages.StringField(2, required=True)
     google_id = messages.StringField(3, required=True)
-    email = messages.StringField(4)
+    email = messages.StringField(4, required=True)
 
 class GameForm(messages.Message):
     """GameForm for outbound game state information"""
