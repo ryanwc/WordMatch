@@ -31,7 +31,7 @@ class Language(ndb.Model):
     name = ndb.StringProperty(required=True)
     cards = ndb.PickleProperty(required=True)
     # cards are stored as pickled list of dicts, where each dict is a card:
-    # [{'id':uniqueID, 'front':'front string', 'back':'back string'}, ... etc]
+    # [{'id':uniqueID, 'front':'front string'},{'id':uniqueID, 'back':'back string'}, ... etc]
 
     def to_form(self):
         """Returns a LanguageForm representation of the Language"""
@@ -45,6 +45,7 @@ class Game(ndb.Model):
     successful_matches = ndb.IntegerProperty(required=True)
     num_match_attempts = ndb.IntegerProperty(required=True)
     match_attempts = ndb.PickleProperty(required=True)
+    cards = ndb.PickleProperty(required=True)
     max_attempts = ndb.IntegerProperty(required=True)
     game_over = ndb.BooleanProperty(required=True)
     language = ndb.KeyProperty(required=True, kind='Language')
@@ -177,13 +178,16 @@ if not Language.query().get():
 
             for line in raw_file:
 
-                cardDict = {}
+                frontDict = {}
+                backDict = {}
                 card = line.split("\t")
-                cardDict["id"] = card_id_counter
-                cardDict["front"] = card[0]
-                cardDict["back"] = card[1]
+                frontDict["id"] = card_id_counter
+                frontDict["front"] = card[0]
+                backDict["id"] = card_id_counter
+                backDict["back"] = card[1]
 
-                cards.append(cardDict)
+                cards.append(frontDict)
+                cards.append(backDict)
                 card_id_counter += 1
 
             languageEntity = Language(name=language, cards=cards)

@@ -52,7 +52,7 @@ var Game = function(data) {
     self.match_attempts = ko.observable([]);
     self.max_attempts = ko.observable(data["max_attempts"]);
     self.game_over = ko.observable(data["game_over"]);
-    self.cards = ko.observableArray(data["cards"]);
+    self.cards = ko.observableArray([]);
 }
 
 var Card = function (data) {
@@ -60,8 +60,18 @@ var Card = function (data) {
     var self = this;
 
     self.id = ko.observable(data["id"]);
-    self.front = ko.observable(data["front"]);
-    self.back = ko.observable(data["back"]);
+    self.text = ko.computed(function() {
+
+        if (data["front"]) {
+
+            return data["front"];
+        }
+        else if (data["back"]) {
+
+            return data["back"];
+        }
+    });
+    self.position = ko.observable(data["position"]);
 }
 
 var Score = function (data) {
@@ -90,8 +100,6 @@ var ViewModel = function () {
 
     self.user = ko.observable(self.anonUser());
 
-    console.log(self.user().key());
-
     self.signinMessage = ko.computed(function() {
 
         if (self.user().key() != "-1") {
@@ -104,7 +112,8 @@ var ViewModel = function () {
         }
     });
 
-    self.cards = ko.observableArray([]);
+    self.game = ko.observable();
+    self.selectingGame = ko.observable(true);
 
     // track user input (game options)
     self.optionLanguages = ko.observableArray([]);
@@ -243,7 +252,6 @@ var ViewModel = function () {
 
     self.createGame = function() {
 
-        console.log(self.user().key())
         var game_resource = {'resource': {'language': self.inputLanguage().name(), 
                                           'possible_matches': self.inputMatches(),
                                           'max_attempts': self.inputMaxAttempts(),
@@ -252,13 +260,23 @@ var ViewModel = function () {
 
         gapi.client.word_match.create_game(game_resource).execute(function(resp) {
 
-
-            console.log(resp);
-
             if (!resp.code) {
 
                 resp.cards = JSON.parse(resp.cards);
-                console.log(resp);
+
+                var modelCards = [];
+
+                for (var i = 0; i < resp.cards.length; i++) {
+
+                    var newCard = new Card(resp.cards[i]);
+                    modelCards.push(newCard);
+                }
+
+                var modelGame = new Game(resp);
+                modelGame.cards(modelCards);
+                self.game(modelGame);
+                console.log(self.game().cards());
+                self.selectingGame(false);
             }           
         });
     };
@@ -268,8 +286,6 @@ var ViewModel = function () {
 
     self.populateLanguageOptions = function() {
         // populate language options with all available languages
-
-        console.log(gapi.client);
         
         gapi.client.word_match.get_languages().execute(function(resp) {
 

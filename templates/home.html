@@ -26,7 +26,7 @@
 	<!-- gamplay area div -->	
 	<div id="gamebox">
 
-		<div id="optionsdiv">
+		<div id="optionsdiv" data-bind="visible: selectingGame">
 
 			<div class="optiondiv" id="optionsheadline">Game a New Game for User:&nbsp;<span data-bind="text: user().name()"></span></div>
 
@@ -55,8 +55,14 @@
 
 		</div>
 
-		<div id="cardsdiv">
-
+		<div id="cardsdiv"  data-bind="visible: !selectingGame()">
+			<ul>
+			<!-- ko with: game -->
+			<!-- ko foreach: cards -->
+			<li class="card" data-bind="text: front"></li>
+			<!-- /ko -->
+			<!-- /ko -->
+			</ul>
 		</div>
 
 		<div id="statsdiv">

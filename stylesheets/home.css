@@ -41,6 +41,22 @@ body {
 	margin-bottom: 10px;
 }
 
+/* cards */
+
+#cardsdiv {
+	display: flex;
+	flex-wrap: wrap;
+}
+
+.card {
+	margin: 3px;
+	padding: 3px;
+	border: 1px solid black;
+	width: 150px;
+	height: 50px;
+	overflow-y: scroll;
+}
+
 /* stats */
 
 

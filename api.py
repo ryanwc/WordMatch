@@ -4,7 +4,7 @@ Concerned primarily with communication to/from the API's users."""
 
 import logging
 import endpoints
-import json
+import json, random
 from protorpc import remote, messages
 from google.appengine.api import memcache
 from google.appengine.api import taskqueue
@@ -111,9 +111,42 @@ class WordMatchApi(remote.Service):
             raise ValueError('Max attempts must be greater '\
                              'than or equal to possible matches')
 
+        cards = language.cards
+
+        card_ids = {}
+
+        # generate random card ids to pick for the game
+        for x in range(0, request.possible_matches):
+
+            idToUse = random.randint(0, len(cards))
+
+            while idToUse in card_ids:
+
+                idToUse = random.randint(0, len(cards))
+
+            card_ids[str(idToUse)] = True
+
+        game_cards = []
+
+        # get the cards
+        for x in range(0, len(cards)):
+
+            print cards[x]
+            if cards[x]["id"] in card_ids:
+
+                game_cards.append(cards[x])
+
+        random.shuffle(game_cards)
+
+        # assign the position for board layout
+        for x in range(0, len(game_cards)):
+
+            game_cards[x]["position"] = x
+
         game = Game(user=user.key,
                     possible_matches=request.possible_matches,
                     language=language.key,
+                    cards=game_cards,
                     successful_matches=0,
                     num_match_attempts=0,
                     match_attempts=[],
@@ -127,7 +160,7 @@ class WordMatchApi(remote.Service):
         taskqueue.add(url='/tasks/cache_average_attempts')
         return GameForm(urlsafe_key = game.key.urlsafe(),
           language = language.name,
-          cards = json.dumps(language.cards),
+          cards = json.dumps(game.cards),
           user_name = user.name,
           possible_matches = game.possible_matches,
           successful_matches = game.successful_matches,
