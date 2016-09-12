@@ -19,10 +19,10 @@ handlers:
   script: api.api
 
 - url: /tasks/cache_average_attempts
-  script: main.app
+  script: app.app
 
 - url: /crons/send_reminder
-  script: main.app
+  script: app.app
 
 - url: (.*)
   script: app.app

@@ -26,13 +26,15 @@ var User = function (data) {
 
     self.key = ko.observable(data["key"]);
     self.name = ko.observable(data["name"]);
+    self.google_id = ko.observable(data["google_id"]);
+    self.email = ko.observable(data["email"]);
 }
 
 var Language = function(data) {
 
     var self = this;
 
-    self.key = ko.observable(data["urlsafe_key"]);
+    self.key = ko.observable(data["key"]);
     self.name = ko.observable(data["name"]);
     self.cards = ko.observable(data["cards"]);
 }
@@ -41,43 +43,25 @@ var Game = function(data) {
 
     var self = this;
 
-    self.user = ko.observable(data["user"]);
+    self.urlsafe_key = ko.observable(data["urlsafe_key"]);
+    self.user_name = ko.observable(data["user_name"]);
     self.language = ko.observable(data["language"]);
     self.possible_matches = ko.observable(data["possible_matches"]);
     self.successful_matches = ko.observable(0);
-    self.match_attempts = ko.observable(0);
+    self.num_match_attempts = ko.observable(0);
+    self.match_attempts = ko.observable([]);
     self.max_attempts = ko.observable(data["max_attempts"]);
     self.game_over = ko.observable(data["game_over"]);
     self.cards = ko.observableArray(data["cards"]);
-    self.demerits = ko.computed(function() {
-
-        var totalDemerits = 0;
-
-        for (var i = 0; i < self.cards().length; i++) {
-
-            totalDemerits += self.cards()[i].demerits();
-        }
-
-        return totalDemerits;
-    });
 }
 
 var Card = function (data) {
 
     var self = this;
 
-    self.id = ko.observable(data["key"]);
+    self.id = ko.observable(data["id"]);
     self.front = ko.observable(data["front"]);
-    self.front_position = ko.observable(data["front_position"]);
-    self.front_demerits = ko.observable(0);
     self.back = ko.observable(data["back"]);
-    self.back_position = ko.observable(data["back_position"]);
-    self.back_demerits = ko.observable(0);
-
-    self.demerits = ko.computed(function() {
-
-        return self.front_demerits() + self.back_demerits();
-    });
 }
 
 var Score = function (data) {
@@ -91,7 +75,6 @@ var Score = function (data) {
     self.won = ko.observable(data["won"]);
     self.percentage_matched = ko.observable(data["percentage_matched"]);
     self.difficulty = ko.observable(data["difficulty"]);
-    self.demerits = ko.observable(data["demerits"]);
 }
 
 /*
@@ -103,12 +86,15 @@ var ViewModel = function () {
 
     var self = this;
 
-    self.user = ko.observable(null);
+    self.anonUser = ko.observable(new User({"key":"-1", name:"Default User"}))
+
+    self.user = ko.observable(self.anonUser());
+
+    console.log(self.user().key());
 
     self.signinMessage = ko.computed(function() {
 
-        console.log("fired");
-        if (self.user()) {
+        if (self.user().key() != "-1") {
 
             return "Signed in as " + self.user().name();
         }
@@ -144,7 +130,7 @@ var ViewModel = function () {
         else {
 
             if (parseInt(self.inputMatches()) < 1 || 
-                parseInt(self.inputMatches()) > 36 ||
+                parseInt(self.inputMatches()) > 20 ||
                 parseInt(self.inputMatches()) % 1 != 0) {
             
                 return true;
@@ -188,7 +174,7 @@ var ViewModel = function () {
 
     self.signoutUser = function () {
 
-        self.user(null);
+        self.user(new User({"key":"-1", name:"Default User"}));
     }
 
     self.signinUserFromGoogle = function (google_user_name, google_id, email) {
@@ -196,8 +182,6 @@ var ViewModel = function () {
         self.signoutUser();
 
         var id_resource = {'resource': {'user_google_id': google_id}};
-
-        console.log(id_resource);
 
         gapi.client.word_match.get_user_from_google_id(id_resource).execute(function(resp) {
 
@@ -259,7 +243,24 @@ var ViewModel = function () {
 
     self.createGame = function() {
 
-        // TO-DO: start game logic
+        console.log(self.user().key())
+        var game_resource = {'resource': {'language': self.inputLanguage().name(), 
+                                          'possible_matches': self.inputMatches(),
+                                          'max_attempts': self.inputMaxAttempts(),
+                                          'user_key': self.user().key()}
+                            }
+
+        gapi.client.word_match.create_game(game_resource).execute(function(resp) {
+
+
+            console.log(resp);
+
+            if (!resp.code) {
+
+                resp.cards = JSON.parse(resp.cards);
+                console.log(resp);
+            }           
+        });
     };
 
     /* Initialization
@@ -268,14 +269,14 @@ var ViewModel = function () {
     self.populateLanguageOptions = function() {
         // populate language options with all available languages
 
+        console.log(gapi.client);
+        
         gapi.client.word_match.get_languages().execute(function(resp) {
-
-            console.log(resp);
 
             if (!resp.code) {
 
                 resp.items = resp.items || [];
-
+                
                 for (var i = 0; i < resp.items.length; i++) {
 
                     language = new Language(resp.items[i]);
@@ -289,7 +290,7 @@ var ViewModel = function () {
 
     self.loadEndpointsAPI = function() {
 
-        gapi.client.load('word_match', 'v1', self.populateLanguageOptions, 'http://localhost:8080/_ah/api');
+        gapi.client.load('word_match', 'v1', self.populateLanguageOptions, '/_ah/api');
     };
 
     (function() {
@@ -339,9 +340,7 @@ function handleSignoutClick(event) {
 
     gapi.auth2.getAuthInstance().signOut().then(function() {
 
-        updateSigninStatus();
-        viewModel.signinMessage("Not signed in.");
-        viewModel.userGoogleID(null);       
+        updateSigninStatus();  
     });
 }
 
@@ -357,15 +356,9 @@ function updateSigninStatus() {
 
     if (isSignedIn) {
 
-        console.log(gapi.auth2.getAuthInstance().currentUser);
-
         var google_user_name = gapi.auth2.getAuthInstance().currentUser.Ab.w3.ig;
         var google_id = gapi.auth2.getAuthInstance().currentUser.Ab.El;
         var email = gapi.auth2.getAuthInstance().currentUser.Ab.w3.U3;
-
-        console.log(google_user_name);
-        console.log(google_id);
-        console.log(email);
 
         viewModel.signinUserFromGoogle(google_user_name, google_id, email);
 

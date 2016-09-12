@@ -4,6 +4,7 @@ Concerned primarily with communication to/from the API's users."""
 
 import logging
 import endpoints
+import json
 from protorpc import remote, messages
 from google.appengine.api import memcache
 from google.appengine.api import taskqueue
@@ -13,7 +14,11 @@ from models import StringMessage, NewGameForm, GameForm, MakeMoveForm,\
     ScoreForms, LanguageForm, LanguageForms, UserForm
 from utils import get_by_urlsafe
 
-NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm,)
+NEW_GAME_REQUEST = endpoints.ResourceContainer(
+    language = messages.StringField(1),
+    possible_matches = messages.IntegerField(2),
+    max_attempts = messages.IntegerField(3),
+    user_key = messages.StringField(4),)
 GET_GAME_REQUEST = endpoints.ResourceContainer(
         urlsafe_game_key=messages.StringField(1),)
 MAKE_MOVE_REQUEST = endpoints.ResourceContainer(
@@ -64,9 +69,6 @@ class WordMatchApi(remote.Service):
         """Get a user by the user's google account ID"""
         user = User.query(User.google_id == request.user_google_id).get()
         
-        print request.user_google_id
-        print "hereherehereherehereherehereherehereherehere"
-        
         if not user:
             message = 'No user with the id "%s" exists.' % request.user_google_id
             raise endpoints.NotFoundException(message)
@@ -82,24 +84,57 @@ class WordMatchApi(remote.Service):
     @endpoints.method(request_message=NEW_GAME_REQUEST,
                       response_message=GameForm,
                       path='game',
-                      name='new_game',
+                      name='create_game',
                       http_method='POST')
-    def new_game(self, request):
+    def create_game(self, request):
         """Creates new game"""
-        user = User.query(User.name == request.user_name).get()
+        user = None
+        if request.user_key == "-1":
+          user = User.query(User.google_id == "-1").get()
+        else:
+          user = get_by_urlsafe(request.user_key, User)
+
         if not user:
             raise endpoints.NotFoundException(
-                    'A User with that name does not exist!')
-        try:
-            game = Game.new_game(user.key, request.language_name)
-        except ValueError:
-            raise endpoints.BadRequestException('Language invalid')
+                    'No user selected!')
+
+        language = Language.query(Language.name == request.language).get()
+
+        if not language.name in ["Spanish", "German", "Thai"]:
+            raise ValueError('Language must be Spanish, German, or Thai')
+
+        if request.possible_matches > 20 or request.possible_matches < 1:
+            raise ValueError('Possible matches must be at least '\
+                             '1 and at most 20')
+
+        if not request.max_attempts >= request.possible_matches:
+            raise ValueError('Max attempts must be greater '\
+                             'than or equal to possible matches')
+
+        game = Game(user=user.key,
+                    possible_matches=request.possible_matches,
+                    language=language.key,
+                    successful_matches=0,
+                    num_match_attempts=0,
+                    match_attempts=[],
+                    max_attempts=request.max_attempts,
+                    game_over=False)
+        game.put()
 
         # Use a task queue to update the average words typed.
         # This operation is not needed to complete the creation of a new game
         # so it is performed out of sequence.
         taskqueue.add(url='/tasks/cache_average_attempts')
-        return game.to_form('Good luck playing Word Match!')
+        return GameForm(urlsafe_key = game.key.urlsafe(),
+          language = language.name,
+          cards = json.dumps(language.cards),
+          user_name = user.name,
+          possible_matches = game.possible_matches,
+          successful_matches = game.successful_matches,
+          num_match_attempts = game.num_match_attempts,
+          match_attempts = json.dumps(game.match_attempts),
+          max_attempts = game.max_attempts,
+          game_over = game.game_over)
 
     @endpoints.method(request_message=GET_GAME_REQUEST,
                       response_message=GameForm,
@@ -189,11 +224,11 @@ class WordMatchApi(remote.Service):
         games = Game.query(Game.game_over == False).fetch()
         if games:
             count = len(games)
-            total_match_attempts = sum([game.words_typed
+            total_match_attempts = sum([game.num_match_attempts
                                         for game in games])
-            average = float(total_words_typed)/count
-            memcache.set(MEMCACHE_WORDS_TYPED,
-                         'The average words typed is {:.2f}'.format(average))
+            average = float(total_match_attempts)/count
+            memcache.set(MEMCACHE_MATCH_ATTEMPTS,
+                         'The average match attempts is {:.2f}'.format(average))
 
 
 api = endpoints.api_server([WordMatchApi])

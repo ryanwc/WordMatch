@@ -13,8 +13,8 @@ from google.appengine.ext import ndb
 class User(ndb.Model):
     """User profile"""
     name = ndb.StringProperty(required=True)
-    google_id = ndb.StringProperty()
-    email = ndb.StringProperty()
+    google_id = ndb.StringProperty(required=True)
+    email = ndb.StringProperty(required=True)
 
     def to_form(self):
         """Returns a UserForm representation of the User"""
@@ -47,39 +47,8 @@ class Game(ndb.Model):
     match_attempts = ndb.PickleProperty(required=True)
     max_attempts = ndb.IntegerProperty(required=True)
     game_over = ndb.BooleanProperty(required=True)
-    demerits = ndb.IntegerProperty(required=True)
     language = ndb.KeyProperty(required=True, kind='Language')
     user = ndb.KeyProperty(required=True, kind='User')
-
-    @classmethod
-    def new_game(user, language, size, match_attempt_goal):
-        """Creates and returns a new game"""
-
-        spanish = unicode(u"Español", "utf-8")
-        german = unicode(u"Deutsche", "utf-8")
-        thai = unicode(u"ภาษาไทย", "utf-8")
-        
-        if not language in [spanish, german, thai]:
-            raise ValueError('Language must be Spanish, German, or Thai')
-
-        if possible_matches > 50 or possible_matches < 1:
-            raise ValueError('Possible matches must be at least '\
-                             '1 and at most 50')
-
-        if not max_attempts >= total_matches:
-            raise ValueError('Max attempts must be greater '\
-                             'than or equal to possible matches')
-
-        game = Game(user=user,
-                    possible_matches=possible_matches,
-                    language=language,
-                    successful_matches=0,
-                    num_match_attempts=0,
-                    match_attempts=[],
-                    max_attempts=max_attempts,
-                    game_over=False)
-        game.put()
-        return game
 
     def to_form(self):
         """Returns a GameForm representation of the Game"""
@@ -91,9 +60,7 @@ class Game(ndb.Model):
                         num_match_attempts=self.num_match_attempts,
                         match_attempts=json.dumps(self.match_attempts),
                         max_attempts=self.max_attempts,
-                        game_over=self.game_over,
-                        demerits=self.demerits,
-                        message=message)
+                        game_over=self.game_over)
 
     def end_game(self, won=False):
         """Ends the game - if won is True, the player won. - if won is False,
@@ -116,7 +83,6 @@ class Score(ndb.Model):
     won = ndb.BooleanProperty(required=True)
     percentage_matched = ndb.FloatProperty(required=True)
     difficulty = ndb.FloatProperty(required=True)
-    demerits = ndb.IntegerProperty(required=True)
 
     def to_form(self):
         return ScoreForm(urlsafe_key=self.key.urlsafe(),
@@ -125,8 +91,7 @@ class Score(ndb.Model):
                          date=str(self.date), 
                          language_name=self.language.get().name,
                          percentage_matched=self.percentage_matched,
-                         difficulty=self.difficulty, 
-                         demerits=self.demerits)
+                         difficulty=self.difficulty)
 
 
 class UserForm(messages.Message):
@@ -147,8 +112,7 @@ class GameForm(messages.Message):
     match_attempts = messages.StringField(7, required=True)
     max_attempts = messages.IntegerField(8, required=True)
     game_over = messages.BooleanField(9, required=True)
-    demerits = messages.IntegerField(10, required=True)
-    google_id = messages.StringField(11, required=True)
+    cards = messages.StringField(10, required=True)
 
 
 class NewGameForm(messages.Message):
@@ -173,8 +137,7 @@ class ScoreForm(messages.Message):
     won = messages.BooleanField(4, required=True)
     percentage_matched = messages.FloatField(5, required=True)
     difficulty = messages.FloatField(6, required=True)
-    demerits = messages.FloatField(7, required=True)
-    language = messages.StringField(8, required=True)
+    language = messages.StringField(7, required=True)
 
 
 class ScoreForms(messages.Message):
@@ -228,5 +191,5 @@ if not Language.query().get():
 
 if not User.query().get():
 
-    defaultUser = User(name="Default User", userID=-1)
+    defaultUser = User(name="Default User", google_id="-1", email="None")
     defaultUser.put()
