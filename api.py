@@ -23,7 +23,7 @@ GET_GAME_REQUEST = endpoints.ResourceContainer(
         urlsafe_game_key=messages.StringField(1),)
 MAKE_MOVE_REQUEST = endpoints.ResourceContainer(
     urlsafe_game_key=messages.StringField(1),
-    flipped_card_position=messages.StringField(2),)
+    flipped_card_position=messages.IntegerField(2),)
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
                                            user_google_id=messages.StringField(2),
                                            email=messages.StringField(3),)
@@ -52,13 +52,7 @@ class WordMatchApi(remote.Service):
                     google_id=request.user_google_id)
         user.put()
 
-        # if i do return 'UserForm(user.to_form())', it fails with the message:
-        # '__init__() takes exactly 1 argument, received 2'.
-        # returning LanguageForms (repeated LangueageForm) works fine
-        return UserForm(urlsafe_key=user.key.urlsafe(),
-                        name=user.name,
-                        google_id=user.google_id,
-                        email=user.email)
+        return user.to_form()
 
     @endpoints.method(request_message=GET_USER_REQUEST,
                       response_message=UserForm,
@@ -73,13 +67,7 @@ class WordMatchApi(remote.Service):
             message = 'No user with the id "%s" exists.' % request.user_google_id
             raise endpoints.NotFoundException(message)
 
-        # if i do return 'UserForm(user.to_form())', it fails with the message:
-        # '__init__() takes exactly 1 argument, received 2'.
-        # returning LanguageForms (repeated LangueageForm) works fine
-        return UserForm(urlsafe_key=user.key.urlsafe(),
-                        name=user.name,
-                        google_id=user.google_id,
-                        email=user.email)
+        return user.to_form()
 
     @endpoints.method(request_message=NEW_GAME_REQUEST,
                       response_message=GameForm,
@@ -148,6 +136,7 @@ class WordMatchApi(remote.Service):
                     language=language.key,
                     cards=game_cards,
                     successful_matches=0,
+                    selected_card={},
                     num_match_attempts=0,
                     match_attempts=[],
                     match_in_progress=False,
@@ -159,28 +148,18 @@ class WordMatchApi(remote.Service):
         # This operation is not needed to complete the creation of a new game
         # so it is performed out of sequence.
         taskqueue.add(url='/tasks/cache_average_attempts')
-        return GameForm(urlsafe_key = game.key.urlsafe(),
-          language = language.name,
-          cards = json.dumps(game.cards),
-          user_name = user.name,
-          possible_matches = game.possible_matches,
-          successful_matches = game.successful_matches,
-          num_match_attempts = game.num_match_attempts,
-          match_attempts = json.dumps(game.match_attempts),
-          max_attempts = game.max_attempts,
-          game_over = game.game_over,
-          match_in_progress = game.match_in_progress)
+        return game.to_form()
 
     @endpoints.method(request_message=GET_GAME_REQUEST,
                       response_message=GameForm,
-                      path='game/{urlsafe_game_key}',
+                      path='getgame',
                       name='get_game',
                       http_method='GET')
     def get_game(self, request):
         """Return the current game state."""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
         if game:
-            return game.to_form('Time to match some words!')
+            return game.to_form()
         else:
             raise endpoints.NotFoundException('Game not found!')
 
@@ -197,21 +176,55 @@ class WordMatchApi(remote.Service):
             return endpoints.NotFoundException(
                     'Game already over!')
 
-        game.match_attempts += 1
+        thisSelectedCardIndex = None
+        # get the selected card
+        for x in range(0, len(game.cards)):
 
+            if request.flipped_card_position == game.cards[x]["position"]:
+
+                # flip the card
+                game.cards[x]["isFlipped"] = True
+                thisSelectedCardIndex = x
+                break
+
+        # evaluate a match attempt if appropriate
         if game.match_in_progress:
 
+            if game.cards[thisSelectedCardIndex]["position"] == game.selected_card["position"]:
+                return endpoints.NotFoundException(
+                    'Already selected that card!')
+
+            # record the match attempt
+            game.num_match_attempts += 1
+            game.match_attempts.append([game.selected_card["position"], 
+                                        game.cards[thisSelectedCardIndex]["position"]])
+
+            wasMatch = False
             for x in range(0, len(game.cards)):
 
-                if request.flipped_card_position == game.selected_card.position:
+                if game.cards[thisSelectedCardIndex]["id"] == game.selected_card["id"]:
 
-
-                if reqest.flipped_card_position == g
                     game.successful_matches += 1
+                    wasMatch = True
+
+            if not wasMatch:
+
+                game.cards[thisSelectedCardIndex]["isFlipped"] = False
+                game.selected_card["id"] = False
+
+            game.match_in_progress = False
+            game.selected_card = {}
+        else:
+
+            game.match_in_progress = True
+            game.selected_card = game.cards[thisSelectedCardIndex]
 
         if game.successful_matches >= game.possible_matches:
 
             game.end_game(True)
+        elif game.num_match_attempts >= game.max_attempts:
+
+            game.end_game(False)
 
         game.put()
         return game.to_form()

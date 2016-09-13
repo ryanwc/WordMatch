@@ -120,6 +120,7 @@ var ViewModel = function () {
 
     self.game = ko.observable();
     self.selectingGame = ko.observable(true);
+    self.lastMoveMessage = ko.observable("Make a move.");
 
     // track user input (game options)
     self.optionLanguages = ko.observableArray([]);
@@ -274,20 +275,88 @@ var ViewModel = function () {
 
             self.game(null);
             self.selectingGame(true);
+            self.inputMatches(null);
+            self.inputMaxAttempts(null);
         }
     }
 
     self.flipCard = function(card) {
 
         // position uniquely identifies this card in this game
-        var move_resource = {'resource': {'flipped_card_position': card().position(),
+        var move_resource = {'resource': {'flipped_card_position': card.position(),
                                           'urlsafe_game_key': self.game().urlsafe_key()}
                             };
 
         gapi.client.word_match.make_move(move_resource).execute(function(resp) {
 
+            console.log(resp);
 
-        }
+            if (!resp.code) {
+
+                self.game().match_in_progress(resp.match_in_progress);
+
+                // if this was the first selection
+                if (resp.match_in_progress) {
+                    // just flip it
+
+                    var chosenCard = JSON.parse(resp.selected_card);
+
+                    for (var i = 0; i < self.game().cards().length; i++) {
+
+                        if (chosenCard.position == self.game().cards()[i].position()) {
+
+                            self.game().cards()[i].isFaceUp(true);
+                            break;
+                        }
+                    }
+                }
+                else {
+
+                    var pair = JSON.parse(resp.match_attempts)[self.game().num_match_attempts()];
+
+                    // get the cards
+                    var card1;
+                    var card2;
+
+                    for (var i = 0; i < self.game().cards().length; i++) {
+
+                        if (pair[0].position == self.game().cards()[i].position()) {
+
+                            card1 = self.game().cards()[i].position();
+                        }
+                        else if (pair[1].position == self.game().cards()[i].position()) {
+
+                            card2 = self.game().cards()[i].position();
+                        }
+                    }
+
+                    // if it was a match
+                    if (self.game().successful_matches() != resp.successful_matches) {
+                        // keep cards flipped up
+
+                        for (var i = 0; i < self.game().cards().length; i++) {
+
+                            if (pair[1].position == self.game().cards()[i].position()) {
+
+                                self.game().cards()[i].isFaceUp(true);
+                            }
+                        }
+
+                        self.lastMoveMessage("It's a match!");
+                    }
+                    else {
+                        // show "continue" button which flips cards over when clicked
+
+                        self.lastMoveMessage("It's not a match...");
+                    }
+                    
+                    // update some game values
+                    self.game().match_attempts(resp.match_attempts);
+                    self.game().successful_matches(resp.successful_matches);
+                    self.game().game_over(resp.game_over);
+                }
+            }
+        });
     }
 
     /* Initialization

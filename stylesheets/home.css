@@ -73,6 +73,17 @@ body {
 	cursor: pointer;
 }
 
+#cancelbuttondiv {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	width: 100%;
+}
+
+#cancelgamebutton {
+	margin-top: 10px;
+}
+
 /* stats */
 
 

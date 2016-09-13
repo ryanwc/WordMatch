@@ -59,13 +59,11 @@
 			<!-- ko with: game -->
 			<!-- ko foreach: cards -->
 			<div class="card cardfaceup" data-bind="html: text, visible: isFaceUp()"></div>
-			<div class="card cardfacedown" data-bind="text: position, visible: !isFaceUp(), click: flipCard"></div>
+			<div class="card cardfacedown" data-bind="text: position, visible: !isFaceUp(), click: $root.flipCard"></div>
 			<!-- /ko -->
 			<!-- /ko -->
 
 			<div id="cancelbuttondiv">
-				<br>
-				<br>
 				<button id="cancelgamebutton" data-bind="click: cancelGame">Cancel Game</button>
 			</div>
 		</div>

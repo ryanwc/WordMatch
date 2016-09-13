@@ -65,7 +65,8 @@ class Game(ndb.Model):
                         num_match_attempts=self.num_match_attempts,
                         match_attempts=json.dumps(self.match_attempts),
                         max_attempts=self.max_attempts,
-                        game_over=self.game_over)
+                        game_over=self.game_over,
+                        cards=json.dumps(self.cards))
 
     def end_game(self, won=False):
         """Ends the game - if won is True, the player won. - if won is False,
@@ -73,8 +74,7 @@ class Game(ndb.Model):
         self.game_over = True
         self.put()
         # Add the game to the score 'board'
-        score = Score(user=self.user, date=date.today(), won=won,
-            possible_matches=self.possible_matches,
+        score = Score(game=self.key(), date=date.today(), won=won,
             percentage_matched=(self.successful_matches/self.possible_matches),
             difficulty=(1-((self.max_attempts-self.possible_matches)/self.possible_matches)))
         score.put()
@@ -82,8 +82,7 @@ class Game(ndb.Model):
 
 class Score(ndb.Model):
     """Score object"""
-    user = ndb.KeyProperty(required=True, kind='User')
-    language = ndb.KeyProperty(required=True, kind='Language')
+    game = ndb.KeyProperty(required=True, kind='Game')
     date = ndb.DateProperty(required=True)
     won = ndb.BooleanProperty(required=True)
     percentage_matched = ndb.FloatProperty(required=True)
@@ -91,10 +90,8 @@ class Score(ndb.Model):
 
     def to_form(self):
         return ScoreForm(urlsafe_key=self.key.urlsafe(),
-                         user_name=self.user.get().name, 
                          won=self.won,
                          date=str(self.date), 
-                         language_name=self.language.get().name,
                          percentage_matched=self.percentage_matched,
                          difficulty=self.difficulty)
 
