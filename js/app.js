@@ -53,6 +53,7 @@ var Game = function(data) {
     self.max_attempts = ko.observable(data["max_attempts"]);
     self.game_over = ko.observable(data["game_over"]);
     self.cards = ko.observableArray([]);
+    self.match_in_progress = ko.observable(data["match_in_progress"]);
 }
 
 var Card = function (data) {
@@ -75,7 +76,7 @@ var Card = function (data) {
 
         return data["front"] ? true : false;
     });
-    self.isSelected = ko.observable(false);
+    self.isFaceUp = ko.observable(false);
     self.position = ko.observable(data["position"]);
 }
 
@@ -227,32 +228,12 @@ var ViewModel = function () {
         });
     }
 
-    /* Custom listeners for selection changes
+    /* Custom listeners for  user selection changes
     */
 
-    self.inputLanguage.subscribe(function(newSelection) {
+    // empty
 
-        if (newSelection) {
-            
-            self.resetGame(newSelection.name());
-        }
-    });
-
-    self.resetGame = function (language) {
-  
-        self.resetWords(newSelection.name());
-        self.currentScore(0);
-    };
-
-    /* Modify options based on selections
-    */
-
-    self.resetGame = function() {
-        // 
-
-    };
-
-    /* Start game logic
+    /* Game logic
     */
 
     self.createGame = function() {
@@ -280,11 +261,34 @@ var ViewModel = function () {
                 var modelGame = new Game(resp);
                 modelGame.cards(modelCards);
                 self.game(modelGame);
-                console.log(self.game().cards());
                 self.selectingGame(false);
             }           
         });
     };
+
+    self.cancelGame = function() {
+
+        var cancel = window.confirm("Really cancel the game?");
+
+        if (cancel) {
+
+            self.game(null);
+            self.selectingGame(true);
+        }
+    }
+
+    self.flipCard = function(card) {
+
+        // position uniquely identifies this card in this game
+        var move_resource = {'resource': {'flipped_card_position': card().position(),
+                                          'urlsafe_game_key': self.game().urlsafe_key()}
+                            };
+
+        gapi.client.word_match.make_move(move_resource).execute(function(resp) {
+
+
+        }
+    }
 
     /* Initialization
     */

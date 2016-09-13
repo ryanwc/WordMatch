@@ -46,6 +46,7 @@ body {
 #cardsdiv {
 	display: flex;
 	flex-wrap: wrap;
+	justify-content: center;
 }
 
 .card {
@@ -56,6 +57,16 @@ body {
 	height: 50px;
 	overflow-y: scroll;
 	font-size: .8em;
+	background-color: #bf00ff;
+	color: white;
+}
+
+.cardfaceup {
+	border: 1px dotted yellow;
+}
+
+.cardfacedown {
+	border: 1px solid black;
 }
 
 .card:hover {

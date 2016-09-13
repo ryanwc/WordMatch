@@ -45,6 +45,8 @@ class Game(ndb.Model):
     successful_matches = ndb.IntegerProperty(required=True)
     num_match_attempts = ndb.IntegerProperty(required=True)
     match_attempts = ndb.PickleProperty(required=True)
+    match_in_progress = ndb.BooleanProperty(required=True)
+    selected_card = ndb.PickleProperty(required=True)
     cards = ndb.PickleProperty(required=True)
     max_attempts = ndb.IntegerProperty(required=True)
     game_over = ndb.BooleanProperty(required=True)
@@ -58,6 +60,8 @@ class Game(ndb.Model):
                         possible_matches=self.possible_matches,
                         language=self.language.get().name,
                         successful_matches=self.successful_matches,
+                        match_in_progress=self.match_in_progress,
+                        selected_card=json.dumps(self.selected_card),
                         num_match_attempts=self.num_match_attempts,
                         match_attempts=json.dumps(self.match_attempts),
                         max_attempts=self.max_attempts,
@@ -114,6 +118,8 @@ class GameForm(messages.Message):
     max_attempts = messages.IntegerField(8, required=True)
     game_over = messages.BooleanField(9, required=True)
     cards = messages.StringField(10, required=True)
+    match_in_progress = messages.BooleanField(11, required=True)
+    selected_card = messages.StringField(12, required=True)
 
 
 class NewGameForm(messages.Message):

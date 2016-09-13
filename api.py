@@ -22,8 +22,8 @@ NEW_GAME_REQUEST = endpoints.ResourceContainer(
 GET_GAME_REQUEST = endpoints.ResourceContainer(
         urlsafe_game_key=messages.StringField(1),)
 MAKE_MOVE_REQUEST = endpoints.ResourceContainer(
-    MakeMoveForm,
-    urlsafe_game_key=messages.StringField(1),)
+    urlsafe_game_key=messages.StringField(1),
+    flipped_card_position=messages.StringField(2),)
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
                                            user_google_id=messages.StringField(2),
                                            email=messages.StringField(3),)
@@ -126,9 +126,6 @@ class WordMatchApi(remote.Service):
 
             card_ids[str(idToUse)] = True
 
-        print "card ids to get:"
-        print card_ids
-
         game_cards = []
 
         # get the cards
@@ -136,22 +133,15 @@ class WordMatchApi(remote.Service):
 
             if str(cards[x]["id"]) in card_ids:
 
-                print "found:"
-                print cards[x]
                 game_cards.append(cards[x])
 
         random.shuffle(game_cards)
-
-        print "game cards:"
-        print game_cards
 
         # assign the position for board layout
         for x in range(0, len(game_cards)):
 
             game_cards[x]["position"] = x
-
-        print "game cards:"
-        print game_cards
+            game_cards[x]["isFlipped"] = False
 
         game = Game(user=user.key,
                     possible_matches=request.possible_matches,
@@ -160,6 +150,7 @@ class WordMatchApi(remote.Service):
                     successful_matches=0,
                     num_match_attempts=0,
                     match_attempts=[],
+                    match_in_progress=False,
                     max_attempts=request.max_attempts,
                     game_over=False)
         game.put()
@@ -177,7 +168,8 @@ class WordMatchApi(remote.Service):
           num_match_attempts = game.num_match_attempts,
           match_attempts = json.dumps(game.match_attempts),
           max_attempts = game.max_attempts,
-          game_over = game.game_over)
+          game_over = game.game_over,
+          match_in_progress = game.match_in_progress)
 
     @endpoints.method(request_message=GET_GAME_REQUEST,
                       response_message=GameForm,
@@ -194,33 +186,35 @@ class WordMatchApi(remote.Service):
 
     @endpoints.method(request_message=MAKE_MOVE_REQUEST,
                       response_message=GameForm,
-                      path='game/{urlsafe_game_key}',
+                      path='makemove',
                       name='make_move',
                       http_method='PUT')
     def make_move(self, request):
-        """Handler for attempted match. Returns a game state with message."""
+        """Handler for attempted match. Returns updated game state."""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
+
         if game.game_over:
-            return game.to_form('Game already over!')
+            return endpoints.NotFoundException(
+                    'Game already over!')
 
         game.match_attempts += 1
 
-        if request.first_tile_card == game.second_tile_card:
+        if game.match_in_progress:
 
-            msg = 'It\'s a match!'
-            game.matches_remaining -= 1
-        else:
+            for x in range(0, len(game.cards)):
 
-            msg = 'No match...'
+                if request.flipped_card_position == game.selected_card.position:
 
-        if game.matches_remaining < 1:
 
-            game.end_game(False)
-            return game.to_form(msg + ' Game over!')
-        else:
+                if reqest.flipped_card_position == g
+                    game.successful_matches += 1
 
-            game.put()
-            return game.to_form(msg)
+        if game.successful_matches >= game.possible_matches:
+
+            game.end_game(True)
+
+        game.put()
+        return game.to_form()
 
     @endpoints.method(response_message=ScoreForms,
                       path='scores',
