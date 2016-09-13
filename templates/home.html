@@ -37,7 +37,7 @@
 			<div class="optiondiv"><span class="inputerrormessage" id="matchesmessage" data-bind="visible: showBadLanguageMessage">Language mush be Español, Deutsche, or ภาษาไทย</span></div>
 
 
-			<div class="optiondiv">Enter the number of total matches (number of cards x2) for the game:</div>
+			<div class="optiondiv">Enter the number of total matches for the game:</div>
 			<div class="optiondiv" id="matchesinputdiv">
 				<input id="matchesinput" data-bind="textInput: inputMatches, attr: { placeholder: '-number of matches-' }">
 			</div>
@@ -56,13 +56,11 @@
 		</div>
 
 		<div id="cardsdiv"  data-bind="visible: !selectingGame()">
-			<ul>
 			<!-- ko with: game -->
 			<!-- ko foreach: cards -->
-			<li class="card" data-bind="text: front"></li>
+			<div class="card" data-bind="html: text"></div>
 			<!-- /ko -->
 			<!-- /ko -->
-			</ul>
 		</div>
 
 		<div id="statsdiv">

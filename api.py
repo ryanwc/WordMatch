@@ -118,30 +118,40 @@ class WordMatchApi(remote.Service):
         # generate random card ids to pick for the game
         for x in range(0, request.possible_matches):
 
-            idToUse = random.randint(0, len(cards))
+            idToUse = random.randint(0, len(cards)/2)
 
             while idToUse in card_ids:
 
-                idToUse = random.randint(0, len(cards))
+                idToUse = random.randint(0, len(cards)/2)
 
             card_ids[str(idToUse)] = True
+
+        print "card ids to get:"
+        print card_ids
 
         game_cards = []
 
         # get the cards
         for x in range(0, len(cards)):
 
-            print cards[x]
-            if cards[x]["id"] in card_ids:
+            if str(cards[x]["id"]) in card_ids:
 
+                print "found:"
+                print cards[x]
                 game_cards.append(cards[x])
 
         random.shuffle(game_cards)
+
+        print "game cards:"
+        print game_cards
 
         # assign the position for board layout
         for x in range(0, len(game_cards)):
 
             game_cards[x]["position"] = x
+
+        print "game cards:"
+        print game_cards
 
         game = Game(user=user.key,
                     possible_matches=request.possible_matches,

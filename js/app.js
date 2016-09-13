@@ -71,6 +71,11 @@ var Card = function (data) {
             return data["back"];
         }
     });
+    self.isFront = ko.computed(function() {
+
+        return data["front"] ? true : false;
+    });
+    self.isSelected = ko.observable(false);
     self.position = ko.observable(data["position"]);
 }
 

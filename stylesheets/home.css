@@ -55,6 +55,11 @@ body {
 	width: 150px;
 	height: 50px;
 	overflow-y: scroll;
+	font-size: .8em;
+}
+
+.card:hover {
+	cursor: pointer;
 }
 
 /* stats */
