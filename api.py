@@ -291,7 +291,7 @@ class WordMatchApi(remote.Service):
                       response_message=ScoreForms,
                       path='getuserscores',
                       name='get_user_scores',
-                      http_method='GET')
+                      http_method='POST')
     def get_user_scores(self, request):
         """Returns all of an individual User's scores"""
         user = get_by_urlsafe(request.urlsafe_user_key, User)
@@ -318,6 +318,15 @@ class WordMatchApi(remote.Service):
 
         return UserForms(items=[user.to_form() for user in users])
 
+    @endpoints.method(response_message=LanguageForms,
+                      path='languages',
+                      name='get_languages',
+                      http_method='GET')
+    def get_languages(self, request):
+        """Returns all available languages"""
+        return LanguageForms(items=[language.to_form() for language in Language.query()])
+
+    # average attempts is probably a dumb metric to cache but at least the code is here
     @endpoints.method(response_message=StringMessage,
                       path='games/average_attempts',
                       name='get_average_attempts_remaining',
@@ -327,18 +336,11 @@ class WordMatchApi(remote.Service):
         return StringMessage(message=memcache.\
             get(MEMCACHE_MATCH_ATTEMPTS) or '')
 
-    @endpoints.method(response_message=LanguageForms,
-                      path='languages',
-                      name='get_languages',
-                      http_method='GET')
-    def get_languages(self, request):
-        """Returns all available languages"""
-        return LanguageForms(items=[language.to_form() for language in Language.query()])
-
     @staticmethod
     def _cache_average_attempts():
-        """Populates memcache with the average match attempts of Game"""
-        games = Game.query(Game.game_over == False).fetch()
+        """Populates memcache with the average match attempts of each completed Game"""
+        games = Game.query(Game.game_over == True).fetch()
+
         if games:
             count = len(games)
             total_match_attempts = sum([game.num_match_attempts

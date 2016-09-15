@@ -77,7 +77,7 @@ class Game(ndb.Model):
         the player lost."""
         self.game_over = True
         self.put()
-        
+
         difficulty = (self.possible_matches*1.0)/self.max_attempts
 
         # get values for user ranking metrics because GAE 'eventual consistency'
@@ -160,12 +160,6 @@ class NewGameForm(messages.Message):
     possible_matches = messages.IntegerField(2, required=True)
     max_attempts = messages.IntegerField(3, required=True)
     language = messages.StringField(4, required=True)
-
-
-class MakeMoveForm(messages.Message):
-    """Used to make a move in an existing game"""
-    this_text_id = messages.IntegerField(1, required=True)
-    is_second = messages.BooleanField(2, required=True)
 
 
 class ScoreForm(messages.Message):

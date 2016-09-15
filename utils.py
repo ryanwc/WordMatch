@@ -40,12 +40,13 @@ def get_by_urlsafe(urlsafe, model):
 ### helper functions
 
 def ndb_Model_to_Dict(modelInstance):
-    ''' Override to_dict so can serialize unserializable ndb properties
-    (like GeoPtProperty, BlobProperty, and KeyProperty)
+    ''' Use in place of ndbEntity.to_dict() so can serialize unserializable 
+    ndb properties (like GeoPtProperty, BlobProperty, and KeyProperty)
     '''
     dict = {}
     properties = None
 
+    # get proper set of properties
     if type(modelInstance) is User:
         properties = User._properties
     elif type(modelInstance) is Language:
