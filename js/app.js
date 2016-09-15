@@ -438,7 +438,7 @@ var ViewModel = function () {
 
         if (cancel) {
 
-            self.deleteGameFromServer(self.game().urlsafe_key());
+            self.cancelGameOnServer(self.game().urlsafe_key());
             self.endGame();
         }
     };
@@ -461,11 +461,11 @@ var ViewModel = function () {
         self.inputMaxAttempts(null);
     };
 
-    self.deleteGameFromServer = function(urlsafe_game_key) {
+    self.cancelGameOnServer = function(urlsafe_game_key) {
 
         var game_resource = {'resource': {'urlsafe_game_key': urlsafe_game_key}};
 
-        gapi.client.word_match.delete_game(game_resource).execute(function(resp) {
+        gapi.client.word_match.cancel_game(game_resource).execute(function(resp) {
 
             console.log(resp);
 

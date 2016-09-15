@@ -184,15 +184,15 @@ class WordMatchApi(remote.Service):
 
     @endpoints.method(request_message=REQUEST_BY_GAME_KEY,
                       response_message=StringMessage,
-                      path='deletegame',
-                      name='delete_game',
+                      path='cancelgame',
+                      name='cancel_game',
                       http_method='POST')
-    def delete_game(self, request):
-        """Delete the given game."""
+    def cancel_game(self, request):
+        """Cancel (delete) the given game."""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
         if game:
             game.key.delete()
-            return StringMessage(message="Game deleted.")
+            return StringMessage(message="Game cancelled.")
         else:
             raise endpoints.NotFoundException('Game not found!')
 
