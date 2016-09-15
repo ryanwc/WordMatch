@@ -20,8 +20,6 @@ def get_by_urlsafe(urlsafe, model):
         exists.
     Raises:
         ValueError:"""
-    print urlsafe
-    print model
     try:
         key = ndb.Key(urlsafe=urlsafe)
     except TypeError:

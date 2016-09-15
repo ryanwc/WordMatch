@@ -190,11 +190,16 @@ class WordMatchApi(remote.Service):
     def cancel_game(self, request):
         """Cancel (delete) the given game."""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
-        if game:
-            game.key.delete()
-            return StringMessage(message="Game cancelled.")
-        else:
+
+        if not game:
             raise endpoints.NotFoundException('Game not found!')
+
+        if game.game_over:
+            raise endpoints.ForbiddenException(
+                'Cannot cancel a completed game.')
+
+        game.key.delete()
+        return StringMessage(message="Game cancelled.")
 
     @endpoints.method(request_message=MAKE_MOVE_REQUEST,
                       response_message=GameForm,
@@ -206,7 +211,7 @@ class WordMatchApi(remote.Service):
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
 
         if game.game_over:
-            return endpoints.NotFoundException(
+            return endpoints.ForbiddenException(
                     'Game already over!')
 
         thisSelectedCardIndex = None
@@ -224,7 +229,7 @@ class WordMatchApi(remote.Service):
         if game.match_in_progress:
 
             if game.cards[thisSelectedCardIndex]["position"] == game.selected_card["position"]:
-                return endpoints.NotFoundException(
+                return endpoints.ForbiddenException(
                     'Already selected that card!')
 
             # record the match attempt
