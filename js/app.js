@@ -138,6 +138,7 @@ var Game = function(data) {
     });
 
     self.waiting.subscribe(function(newWaitingStatus) {
+        // game is pause status change
 
         if (newWaitingStatus) {
 
@@ -162,7 +163,8 @@ var Game = function(data) {
 }
 
 var Card = function (data) {
-
+    // a card, significantly different from a card on the sever
+    // because a card on the sever is not an entity
     var self = this;
 
     self.id = ko.observable(data["id"]);
@@ -216,9 +218,8 @@ var Score = function (data) {
 
     var self = this;
 
-    self.key = ko.observable(data["key"]);
-    self.player = ko.observable(data["player"]);
-    self.language = ko.observable(data["date"]);
+    self.urlsafe_key = ko.observable(data["urlsafe_key"]);
+    self.user_name = ko.observable(data["user_name"]);
     self.date = ko.observable(data["date"]);
     self.won = ko.observable(data["won"]);
     self.percentage_matched = ko.observable(data["percentage_matched"]);
@@ -275,7 +276,6 @@ var ViewModel = function () {
 
                 if (!resp.code) { 
 
-                    console.log(resp);
                 }
             });
         }
