@@ -31,6 +31,7 @@ REQUEST_BY_GOOGLE_ID = endpoints.ResourceContainer(user_google_id=messages.Strin
 REQUEST_BY_USER_KEY = endpoints.ResourceContainer(urlsafe_user_key=messages.StringField(1),)
 GAMES_BY_USER_ID_REQUEST = endpoints.ResourceContainer(urlsafe_user_key=messages.StringField(1),
                                                        active=messages.BooleanField(2),)
+SCORE_REQUEST = endpoints.ResourceContainer(limit=messages.IntegerField(1),)
 
 
 MEMCACHE_MATCH_ATTEMPTS = 'MATCH_ATTEMPTS'
@@ -263,13 +264,22 @@ class WordMatchApi(remote.Service):
         game.put()
         return game.to_form()
 
-    @endpoints.method(response_message=ScoreForms,
-                      path='scores',
-                      name='get_scores',
-                      http_method='GET')
-    def get_scores(self, request):
-        """Return all scores"""
-        return ScoreForms(items=[score.to_form() for score in Score.query()])
+    @endpoints.method(request_message=SCORE_REQUEST,
+                      response_message=ScoreForms,
+                      path='highscores',
+                      name='get_high_scores',
+                      http_method='POST')
+    def get_high_scores(self, request):
+        """Return high scores"""
+
+        print request.limit
+        scores = Score.query().order(-Score.percentage_matched, -Score.difficulty)
+
+        if request.limit:
+
+            scores = scores.fetch(request.limit)
+
+        return ScoreForms(items=[score.to_form() for score in scores])
 
     @endpoints.method(request_message=USER_REQUEST,
                       response_message=ScoreForms,

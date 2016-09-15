@@ -90,6 +90,7 @@ class Score(ndb.Model):
 
     def to_form(self):
         return ScoreForm(urlsafe_key=self.key.urlsafe(),
+                         user_name=self.game.get().user.get().name,
                          won=self.won,
                          date=str(self.date), 
                          percentage_matched=self.percentage_matched,
@@ -136,12 +137,11 @@ class MakeMoveForm(messages.Message):
 class ScoreForm(messages.Message):
     """ScoreForm for outbound Score information"""
     urlsafe_key = messages.StringField(1, required=True)
-    user_name = messages.StringField(2, required=True)
-    date = messages.StringField(3, required=True)
-    won = messages.BooleanField(4, required=True)
-    percentage_matched = messages.FloatField(5, required=True)
-    difficulty = messages.FloatField(6, required=True)
-    language = messages.StringField(7, required=True)
+    date = messages.StringField(2, required=True)
+    won = messages.BooleanField(3, required=True)
+    percentage_matched = messages.FloatField(4, required=True)
+    difficulty = messages.FloatField(5, required=True)
+    user_name = messages.StringField(6, required=True)
 
 
 class ScoreForms(messages.Message):

@@ -342,6 +342,20 @@ var ViewModel = function () {
     /* helper
     */
 
+    self.getHighScores = function (limit) {
+
+        var high_score_resource = {'resource': {'limit': 2}};
+
+        gapi.client.word_match.get_high_scores().execute(function(resp) {
+
+            console.log(resp);
+
+            if (!resp.code) {
+
+            }
+        });
+    };
+
     self.signoutUser = function () {
 
         self.setUserToDefault();
@@ -585,10 +599,17 @@ var ViewModel = function () {
                 }
             }
         });
-    }
+    };
 
     /* Initialization
     */
+
+    self.initStartingAPIValues = function() {
+
+        self.populateLanguageOptions();
+        self.setUserToDefault();
+        self.getHighScores();
+    };
 
     self.populateLanguageOptions = function() {
         // populate language options with all available languages
@@ -608,13 +629,11 @@ var ViewModel = function () {
                 self.optionLanguages.sort();
             }
         });
-
-        self.setUserToDefault();
     };
 
     self.loadEndpointsAPI = function() {
 
-        gapi.client.load('word_match', 'v1', self.populateLanguageOptions, '/_ah/api');
+        gapi.client.load('word_match', 'v1', self.initStartingAPIValues, '/_ah/api');
     };
 
     (function() {
