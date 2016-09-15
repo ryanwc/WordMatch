@@ -265,11 +265,14 @@ var ViewModel = function () {
 
     self.getUserGames = function() {
 
-        var user_resource = {'resource': {'urlsafe_user_key': self.user().urlsafe_key()}};
+        var get_games_resource = {'resource': {'urlsafe_user_key': self.user().urlsafe_key(),
+                                               'active': true
+                                              }
+                                 };
 
         if (self.user()) {
 
-            gapi.client.word_match.get_user_games(user_resource).execute(function(resp) {
+            gapi.client.word_match.get_user_games(get_games_resource).execute(function(resp) {
 
                 if (!resp.code) { 
 

@@ -29,6 +29,8 @@ USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
                                            email=messages.StringField(3),)
 REQUEST_BY_GOOGLE_ID = endpoints.ResourceContainer(user_google_id=messages.StringField(1),)
 REQUEST_BY_USER_KEY = endpoints.ResourceContainer(urlsafe_user_key=messages.StringField(1),)
+GAMES_BY_USER_ID_REQUEST = endpoints.ResourceContainer(urlsafe_user_key=messages.StringField(1),
+                                                       active=messages.BooleanField(2),)
 
 
 MEMCACHE_MATCH_ATTEMPTS = 'MATCH_ATTEMPTS'
@@ -70,7 +72,7 @@ class WordMatchApi(remote.Service):
 
         return user.to_form()
 
-    @endpoints.method(request_message=REQUEST_BY_USER_KEY,
+    @endpoints.method(request_message=GAMES_BY_USER_ID_REQUEST,
                       response_message=GameForms,
                       path='getusergames',
                       name='get_user_games',
@@ -83,7 +85,10 @@ class WordMatchApi(remote.Service):
             message = 'No user with the id "%s" exists.' % request.user_google_id
             raise endpoints.NotFoundException(message)
 
-        games = Game.query(Game.user == user.key)
+        if request.active:
+            games = Game.query(Game.user == user.key, Game.game_over == False)
+        else:
+            games = Game.query(Game.user == user.key)
 
         return GameForms(items=[game.to_form() for game in games])
 
