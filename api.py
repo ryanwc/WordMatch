@@ -219,37 +219,38 @@ class WordMatchApi(remote.Service):
             return endpoints.ForbiddenException(
                     'Game already over!')
 
-        thisSelectedCardIndex = None
-        # get the selected card
-        for x in range(0, len(game.cards)):
+        # get the selected and previously selected card positions
+        # [whole method ripe for refactoring]
+        # remember, x = a card's position, just renaming some variables
+        thisSelectedCardIndex = request.flipped_card_position
 
-            if request.flipped_card_position == game.cards[x]["position"]:
+        if "position" in game.selected_card:
 
-                # flip the card
-                game.cards[x]["isFlipped"] = True
-                thisSelectedCardIndex = x
-                break
+            previouslySelectedCardIndex = game.selected_card["position"]
+
+        # flip the selected card
+        game.cards[thisSelectedCardIndex]["isFlipped"] = True
 
         # evaluate a match attempt if appropriate
         if game.match_in_progress:
 
-            if game.cards[thisSelectedCardIndex]["position"] == game.selected_card["position"]:
+            if thisSelectedCardIndex == previouslySelectedCardIndex:
                 return endpoints.ForbiddenException(
                     'Already selected that card!')
 
             # record the match attempt
             game.num_match_attempts += 1
-            game.match_attempts.append([game.selected_card["position"], 
-                                        game.cards[thisSelectedCardIndex]["position"]])
+            game.match_attempts.append([previouslySelectedCardIndex, 
+                                        thisSelectedCardIndex])
 
             # determine if match
             if game.selected_card["id"] == game.cards[thisSelectedCardIndex]["id"]:
-
+                # keep them flipped
                 game.successful_matches += 1
             else:
-
+                # flip them back over
                 game.cards[thisSelectedCardIndex]["isFlipped"] = False
-                game.selected_card["id"] = False
+                game.cards[previouslySelectedCardIndex]["isFlipped"] = False
 
             game.match_in_progress = False
             game.selected_card = {}
