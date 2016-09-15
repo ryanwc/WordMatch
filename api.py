@@ -287,14 +287,14 @@ class WordMatchApi(remote.Service):
 
         return ScoreForms(items=[score.to_form() for score in scores])
 
-    @endpoints.method(request_message=USER_REQUEST,
+    @endpoints.method(request_message=REQUEST_BY_USER_KEY,
                       response_message=ScoreForms,
-                      path='scores/user/{user_name}',
+                      path='getuserscores',
                       name='get_user_scores',
                       http_method='GET')
     def get_user_scores(self, request):
         """Returns all of an individual User's scores"""
-        user = User.query(User.name == request.user_name).get()
+        user = get_by_urlsafe(request.urlsafe_user_key, User)
         if not user:
             raise endpoints.NotFoundException(
                     'A User with that name does not exist!')
