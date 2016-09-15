@@ -155,6 +155,9 @@ class LanguageForm(messages.Message):
     name = messages.StringField(2, required=True)
     cards = messages.StringField(3, required=True)
 
+class GameForms(messages.Message):
+    """Return multiple Games"""
+    items = messages.MessageField(GameForm, 1, repeated=True)
 
 class LanguageForms(messages.Message):
     """Return multiple Languages"""

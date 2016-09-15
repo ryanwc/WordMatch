@@ -28,7 +28,7 @@
 
 		<div id="optionsdiv" data-bind="visible: selectingGame">
 
-			<div class="optiondiv" id="optionsheadline">Game a New Game for User:&nbsp;<span data-bind="text: user().name()"></span></div>
+			<div class="optiondiv" id="optionsheadline">Game a New Game for User:&nbsp;<!-- ko if: user--><span data-bind="text: user().name()"></span><!-- /ko --></div>
 
 			<div class="optiondiv">Select a language for the cards:</div>
 			<div class="optiondiv" id="languageselectdiv">
@@ -66,7 +66,7 @@
 				<div class="fullwidth result" id="gameovermessage" data-bind="visible: game_over()">Game over!  You <span id="gameresult" data-bind="text: gameOverMessage"></span></div>
 				<div class="fullwidth result" id="currentmovemessage" data-bind="text: currentMoveMessage"></div>
 				<div class="fullwidth result" id="lastmove">Last move was... <span id="lastmovemessage" data-bind="text: lastMoveMessage"></span></div>
-				<div class="fullwidth" id="continuebuttondiv" data-bind="visible: waiting">
+				<div class="fullwidth" id="continuebuttondiv" data-bind="visible: waiting() && !game_over()">
 					<button class="result" id="continuebutton" data-bind="click: resumeAfterMismatch">Press to continue</button>
 				</div>
 			</div>

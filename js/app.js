@@ -24,7 +24,7 @@ var User = function (data) {
 
     var self = this;
 
-    self.key = ko.observable(data["key"]);
+    self.urlsafe_key = ko.observable(data["urlsafe_key"]);
     self.name = ko.observable(data["name"]);
     self.google_id = ko.observable(data["google_id"]);
     self.email = ko.observable(data["email"]);
@@ -235,19 +235,22 @@ var ViewModel = function () {
 
     var self = this;
 
-    self.anonUser = ko.observable(new User({"key":"-1", name:"Default User"}))
-
-    self.user = ko.observable(self.anonUser());
+    self.user = ko.observable();
+    self.userGames = ko.observableArray([]);
 
     self.signinMessage = ko.computed(function() {
 
-        if (self.user().key() != "-1") {
+        if (self.user()) {
 
-            return "Signed in as " + self.user().name();
-        }
-        else {
+            self.getUserGames();
+            if (self.user().google_id() != "-1") {
 
-            return "Not signed in.";
+                return "Signed in as " + self.user().name();
+            }
+            else {
+
+                return "Not signed in.";
+            }
         }
     });
 
@@ -259,6 +262,22 @@ var ViewModel = function () {
     self.inputLanguage = ko.observable();
     self.inputMatches = ko.observable();
     self.inputMaxAttempts = ko.observable();
+
+    self.getUserGames = function() {
+
+        var user_resource = {'resource': {'urlsafe_user_key': self.user().urlsafe_key()}};
+
+        if (self.user()) {
+
+            gapi.client.word_match.get_user_games(user_resource).execute(function(resp) {
+
+                if (!resp.code) { 
+
+                    console.log(resp);
+                }
+            });
+        }
+    };
 
     self.showBadLanguageMessage = ko.computed(function() {
         // to implement if needed
@@ -322,12 +341,23 @@ var ViewModel = function () {
 
     self.signoutUser = function () {
 
-        self.user(new User({"key":"-1", name:"Default User"}));
-    }
+        self.setUserToDefault();
+    };
+
+    self.setUserToDefault = function() {
+
+        var id_resource = {'resource': {'user_google_id': "-1"}};
+
+        gapi.client.word_match.get_user_from_google_id(id_resource).execute(function(resp) {
+
+            if (!resp.code) {
+
+                self.user(new User(resp));
+            }
+        });
+    };
 
     self.signinUserFromGoogle = function (google_user_name, google_id, email) {
-
-        self.signoutUser();
 
         var id_resource = {'resource': {'user_google_id': google_id}};
 
@@ -374,7 +404,7 @@ var ViewModel = function () {
         var game_resource = {'resource': {'language': self.inputLanguage().name(), 
                                           'possible_matches': self.inputMatches(),
                                           'max_attempts': self.inputMaxAttempts(),
-                                          'user_key': self.user().key()}
+                                          'user_key': self.user().urlsafe_key()}
                             }
 
         gapi.client.word_match.create_game(game_resource).execute(function(resp) {
@@ -575,6 +605,8 @@ var ViewModel = function () {
                 self.optionLanguages.sort();
             }
         });
+
+        self.setUserToDefault();
     };
 
     self.loadEndpointsAPI = function() {
@@ -667,12 +699,8 @@ function updateSigninStatus() {
 *   Helper functions
 *
 */
-function setGameBoxHeight() {
 
-    var width = $("#gameboxdiv").width();
-    $("#gameboxpdiv").css({"height":width+"px"});
-}
-
+// useful as callback function after client.js loaded from google
 function initEndpointsAPI() {
 
     viewModel.loadEndpointsAPI();

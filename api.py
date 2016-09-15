@@ -11,7 +11,7 @@ from google.appengine.api import taskqueue
 
 from models import User, Game, Score, Language
 from models import StringMessage, NewGameForm, GameForm, MakeMoveForm,\
-    ScoreForms, LanguageForm, LanguageForms, UserForm, StringMessage
+    ScoreForms, LanguageForm, LanguageForms, GameForms, UserForm, StringMessage
 from utils import get_by_urlsafe
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(
@@ -19,7 +19,7 @@ NEW_GAME_REQUEST = endpoints.ResourceContainer(
     possible_matches = messages.IntegerField(2),
     max_attempts = messages.IntegerField(3),
     user_key = messages.StringField(4),)
-GET_GAME_REQUEST = endpoints.ResourceContainer(
+REQUEST_BY_GAME_KEY = endpoints.ResourceContainer(
         urlsafe_game_key=messages.StringField(1),)
 MAKE_MOVE_REQUEST = endpoints.ResourceContainer(
     urlsafe_game_key=messages.StringField(1),
@@ -27,7 +27,8 @@ MAKE_MOVE_REQUEST = endpoints.ResourceContainer(
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
                                            user_google_id=messages.StringField(2),
                                            email=messages.StringField(3),)
-GET_USER_REQUEST = endpoints.ResourceContainer(user_google_id=messages.StringField(1),)
+REQUEST_BY_GOOGLE_ID = endpoints.ResourceContainer(user_google_id=messages.StringField(1),)
+REQUEST_BY_USER_KEY = endpoints.ResourceContainer(urlsafe_user_key=messages.StringField(1),)
 
 
 MEMCACHE_MATCH_ATTEMPTS = 'MATCH_ATTEMPTS'
@@ -54,7 +55,7 @@ class WordMatchApi(remote.Service):
 
         return user.to_form()
 
-    @endpoints.method(request_message=GET_USER_REQUEST,
+    @endpoints.method(request_message=REQUEST_BY_GOOGLE_ID,
                       response_message=UserForm,
                       path='getuser',
                       name='get_user_from_google_id',
@@ -69,6 +70,23 @@ class WordMatchApi(remote.Service):
 
         return user.to_form()
 
+    @endpoints.method(request_message=REQUEST_BY_USER_KEY,
+                      response_message=GameForms,
+                      path='getusergames',
+                      name='get_user_games',
+                      http_method='POST')
+    def get_user_games(self, request):
+        """Get a user's scores by user key"""
+        user = get_by_urlsafe(request.urlsafe_user_key, User)
+        
+        if not user:
+            message = 'No user with the id "%s" exists.' % request.user_google_id
+            raise endpoints.NotFoundException(message)
+
+        games = Game.query(Game.user == user.key)
+
+        return GameForms(items=[game.to_form() for game in games])
+
     @endpoints.method(request_message=NEW_GAME_REQUEST,
                       response_message=GameForm,
                       path='game',
@@ -76,11 +94,7 @@ class WordMatchApi(remote.Service):
                       http_method='POST')
     def create_game(self, request):
         """Creates new game"""
-        user = None
-        if request.user_key == "-1":
-          user = User.query(User.google_id == "-1").get()
-        else:
-          user = get_by_urlsafe(request.user_key, User)
+        user = get_by_urlsafe(request.user_key, User)
 
         if not user:
             raise endpoints.NotFoundException(
@@ -150,7 +164,7 @@ class WordMatchApi(remote.Service):
         taskqueue.add(url='/tasks/cache_average_attempts')
         return game.to_form()
 
-    @endpoints.method(request_message=GET_GAME_REQUEST,
+    @endpoints.method(request_message=REQUEST_BY_GAME_KEY,
                       response_message=GameForm,
                       path='getgame',
                       name='get_game',
@@ -163,7 +177,7 @@ class WordMatchApi(remote.Service):
         else:
             raise endpoints.NotFoundException('Game not found!')
 
-    @endpoints.method(request_message=GET_GAME_REQUEST,
+    @endpoints.method(request_message=REQUEST_BY_GAME_KEY,
                       response_message=StringMessage,
                       path='deletegame',
                       name='delete_game',
