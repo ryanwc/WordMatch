@@ -11,7 +11,8 @@ from google.appengine.api import taskqueue
 
 from models import User, Game, Score, Language
 from models import StringMessage, NewGameForm, GameForm, MakeMoveForm,\
-    ScoreForms, LanguageForm, LanguageForms, GameForms, UserForm, StringMessage
+    ScoreForms, LanguageForm, LanguageForms, GameForms, UserForm,\
+    UserForms, StringMessage
 from utils import get_by_urlsafe
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(
@@ -103,8 +104,8 @@ class WordMatchApi(remote.Service):
         user = get_by_urlsafe(request.user_key, User)
 
         if not user:
-            raise endpoints.NotFoundException(
-                    'No user selected!')
+            raise endpoints.ForbiddenException(
+                    'No (or invalid) user selected!')
 
         language = Language.query(Language.name == request.language).get()
 
@@ -211,6 +212,9 @@ class WordMatchApi(remote.Service):
         """Handler for attempted match. Returns updated game state."""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
 
+        if not game:
+            raise endpoints.NotFoundException("Game not found!")
+
         if game.game_over:
             return endpoints.ForbiddenException(
                     'Game already over!')
@@ -271,9 +275,10 @@ class WordMatchApi(remote.Service):
                       http_method='POST')
     def get_high_scores(self, request):
         """Return high scores"""
-
-        print request.limit
         scores = Score.query().order(-Score.percentage_matched, -Score.difficulty)
+
+        if not scores:
+            raise endpoints.NotFoundException("No scores yet!")
 
         if request.limit:
 
@@ -293,7 +298,24 @@ class WordMatchApi(remote.Service):
             raise endpoints.NotFoundException(
                     'A User with that name does not exist!')
         scores = Score.query(Score.user == user.key)
+
+        if not scores:
+            raise endpoints.NotFoundException("No scores for this user yet!")
+
         return ScoreForms(items=[score.to_form() for score in scores])
+
+    @endpoints.method(response_message=UserForms,
+                      path='getrankings',
+                      name='get_user_rankings',
+                      http_method='GET')
+    def get_user_rankings(self, request):
+        """Returns users ordered by ranking"""
+        users = User.query().order(-User.win_percentage, -User.average_difficulty)
+
+        if not users:
+            raise endpoints.NotFoundException("No users yet!")
+
+        return UserForms(items=[user.to_form() for user in users])
 
     @endpoints.method(response_message=StringMessage,
                       path='games/average_attempts',

@@ -21,3 +21,10 @@ indexes:
     direction: desc
   - name: difficulty
     direction: desc
+
+- kind: User
+  properties:
+  - name: win_percentage
+    direction: desc
+  - name: average_difficulty
+    direction: desc

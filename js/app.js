@@ -356,6 +356,18 @@ var ViewModel = function () {
         });
     };
 
+    self.getUserRankings = function() {
+
+        gapi.client.word_match.get_user_rankings().execute(function(resp) {
+
+            console.log(resp);
+
+            if (!resp.code) {
+
+            }
+        });      
+    };
+
     self.signoutUser = function () {
 
         self.setUserToDefault();
@@ -609,6 +621,7 @@ var ViewModel = function () {
         self.populateLanguageOptions();
         self.setUserToDefault();
         self.getHighScores();
+        self.getUserRankings();
     };
 
     self.populateLanguageOptions = function() {

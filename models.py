@@ -15,13 +15,17 @@ class User(ndb.Model):
     name = ndb.StringProperty(required=True)
     google_id = ndb.StringProperty(required=True)
     email = ndb.StringProperty(required=True)
+    win_percentage = ndb.FloatProperty()
+    average_difficulty = ndb.FloatProperty()
 
     def to_form(self):
         """Returns a UserForm representation of the User"""
         return UserForm(urlsafe_key=self.key.urlsafe(),
                         name=self.name,
                         google_id=self.google_id,
-                        email=self.email)
+                        email=self.email,
+                        win_percentage=self.win_percentage,
+                        average_difficulty=self.average_difficulty)
 
 class Language(ndb.Model):
     """Language Object
@@ -73,16 +77,44 @@ class Game(ndb.Model):
         the player lost."""
         self.game_over = True
         self.put()
-        # Add the game to the score 'board'
+        
+        difficulty = (self.possible_matches*1.0)/self.max_attempts
+
+        # get values for user ranking metrics because GAE 'eventual consistency'
+        # could makes these calculations easier
+        user = self.user.get()
+        scores = Score.query(Score.user == user.key).fetch()
+        userGames = len(scores)
+        userGames += 1
+        totalDifficulty = difficulty
+        totalWins = 0
+
+        if won:
+            totalWins = 1
+
+        for score in scores:
+
+            if score.won:
+                totalWins += 1
+
+            totalDifficulty += score.difficulty
+
+        # put the score on the books
         score = Score(game=self.key, date=date.today(), won=won,
             percentage_matched=(self.successful_matches/(self.possible_matches*1.0)),
-            difficulty=(self.possible_matches*1.0)/self.max_attempts)
+            difficulty=difficulty, user=self.user)
         score.put()
+
+        # update user ranking metrics
+        user.win_percentage = totalWins / (userGames*1.0)
+        user.average_difficulty = totalDifficulty / userGames
+        user.put()
 
 
 class Score(ndb.Model):
     """Score object"""
     game = ndb.KeyProperty(required=True, kind='Game')
+    user = ndb.KeyProperty(required=True, kind='User')
     date = ndb.DateProperty(required=True)
     won = ndb.BooleanProperty(required=True)
     percentage_matched = ndb.FloatProperty(required=True)
@@ -90,7 +122,7 @@ class Score(ndb.Model):
 
     def to_form(self):
         return ScoreForm(urlsafe_key=self.key.urlsafe(),
-                         user_name=self.game.get().user.get().name,
+                         user_name=self.user.get().name,
                          won=self.won,
                          date=str(self.date), 
                          percentage_matched=self.percentage_matched,
@@ -103,6 +135,8 @@ class UserForm(messages.Message):
     name = messages.StringField(2, required=True)
     google_id = messages.StringField(3, required=True)
     email = messages.StringField(4, required=True)
+    win_percentage = messages.FloatField(5)
+    average_difficulty = messages.FloatField(6)
 
 class GameForm(messages.Message):
     """GameForm for outbound game state information"""
@@ -148,6 +182,10 @@ class ScoreForms(messages.Message):
     """Return multiple ScoreForms"""
     items = messages.MessageField(ScoreForm, 1, repeated=True)
 
+
+class UserForms(messages.Message):
+    """Return multiple ScoreForms"""
+    items = messages.MessageField(UserForm, 1, repeated=True)
 
 class LanguageForm(messages.Message):
     """Language for outbound Language information"""
