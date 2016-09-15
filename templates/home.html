@@ -61,15 +61,16 @@
 			<div class="card cardfaceup" data-bind="html: text, visible: isFaceUp()"></div>
 			<div class="card cardfacedown" data-bind="text: position, visible: !isFaceUp(), click: $root.flipCard"></div>
 			<!-- /ko -->
+
+			<div class="fullwidth" id="statsdiv">
+				<div class="stat fullwidth">Number of match attempts: <span id="nummatchattempts" data-bind="text: num_match_attempts"></span></div>
+				<div class="stat fullwidth">Number of match attempts remaining: <span id="remainingmatchattempts" data-bind="text: remaining_attempts"></span></div>
+			</div>
 			<!-- /ko -->
 
 			<div id="cancelbuttondiv">
 				<button id="cancelgamebutton" data-bind="click: cancelGame">Cancel Game</button>
 			</div>
-		</div>
-
-		<div id="statsdiv">
-
 		</div>
 
 	</div>

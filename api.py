@@ -202,10 +202,11 @@ class WordMatchApi(remote.Service):
             wasMatch = False
             for x in range(0, len(game.cards)):
 
-                if game.cards[thisSelectedCardIndex]["id"] == game.selected_card["id"]:
+                if game.cards[x]["id"] == game.selected_card["id"]:
 
                     game.successful_matches += 1
                     wasMatch = True
+                    break
 
             if not wasMatch:
 

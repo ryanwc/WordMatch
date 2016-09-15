@@ -43,6 +43,7 @@ var Game = function(data) {
 
     var self = this;
 
+    // GAE properties
     self.urlsafe_key = ko.observable(data["urlsafe_key"]);
     self.user_name = ko.observable(data["user_name"]);
     self.language = ko.observable(data["language"]);
@@ -54,6 +55,80 @@ var Game = function(data) {
     self.game_over = ko.observable(data["game_over"]);
     self.cards = ko.observableArray([]);
     self.match_in_progress = ko.observable(data["match_in_progress"]);
+
+    // client-side only properties
+    self.remaining_attempts = ko.computed(function() {
+        return self.max_attempts() - self.num_match_attempts();
+    });
+    self.lastMoveMessage = ko.observable("Make a move.");
+    self.waiting = ko.observable(false);
+    self.selectedCardOne = ko.observable();
+    self.selectedCardTwo = ko.observable();
+
+    self.stopWaiting = function () {
+
+        self.waiting(false);
+    }
+
+    self.setCardsDisabled = function (disable) {
+
+        if (disable) {
+
+            for (var i = 0; i < self.cards().length; i++) {
+
+                if (self.cards()[i].isMatched(false)) {
+
+                    self.cards()[i].isDisabled(true);
+                }
+            }
+        }
+
+        if (!disable) {
+
+            for (var i = 0; i < self.cards().length; i++) {
+
+                if (self.cards()[i].isMatched(false)) {
+
+                    self.cards()[i].isDisabled(false);
+                }
+            }
+        }
+    };
+
+    self.lastMoveMessage.subscribe(function(newMessage) {
+
+        if (newMessage == "a match!") {
+
+           self.waiting(false);
+        }
+        else if (newMessage == "not a match...") {
+
+            self.waiting(true);
+        }
+    });
+
+    self.waiting.subscribe(function(newWaitingStatus) {
+
+        if (newWaitingStatus) {
+
+            self.setCardsDisabled(true);
+        }
+        else {
+
+            self.setCardsDisabled(false);
+
+            // flip cards if were waiting for user to coninue after mis-match
+            if (self.selectedCardOne()) {
+
+                self.selectedCardOne().isFaceUp(false);
+            }
+
+            if (self.selectedCardTwo()) {
+
+                self.selectedCardTwo().isFaceUp(false);
+            }
+        }
+    });
 }
 
 var Card = function (data) {
@@ -78,6 +153,21 @@ var Card = function (data) {
     });
     self.isFaceUp = ko.observable(false);
     self.position = ko.observable(data["position"]);
+
+    self.isMatched = ko.observable(false);
+    self.isDisabled = ko.observable(false);
+
+    self.isMatched.subscribe(function() {
+
+        if (self.isMatched()) {
+
+            self.isDisabled(true);
+        }
+        else {
+
+            self.isDisabled(false);
+        }
+    });
 }
 
 var Score = function (data) {
@@ -120,7 +210,6 @@ var ViewModel = function () {
 
     self.game = ko.observable();
     self.selectingGame = ko.observable(true);
-    self.lastMoveMessage = ko.observable("Make a move.");
 
     // track user input (game options)
     self.optionLanguages = ko.observableArray([]);
@@ -282,6 +371,12 @@ var ViewModel = function () {
 
     self.flipCard = function(card) {
 
+        // check to see if we should do anything
+        if (card.isDisabled()) {
+
+            return;
+        }
+
         // position uniquely identifies this card in this game
         var move_resource = {'resource': {'flipped_card_position': card.position(),
                                           'urlsafe_game_key': self.game().urlsafe_key()}
@@ -311,24 +406,33 @@ var ViewModel = function () {
                     }
                 }
                 else {
-
+                    // not first selection
+                    // endpoint has already advanced game logic (flipped status, incremented attempts etc)
+                    // but if there was no match, we need to look at the second card of the most recent
+                    // match attempt to decide what card to display until user confirms 
+                    // they want to move on (i.e., give time for user to study a wrong answer)
                     var pair = JSON.parse(resp.match_attempts)[self.game().num_match_attempts()];
 
+                    console.log("Second");
+                    console.log(pair);
                     // get the cards
                     var card1;
                     var card2;
 
                     for (var i = 0; i < self.game().cards().length; i++) {
 
-                        if (pair[0].position == self.game().cards()[i].position()) {
+                        if (pair[0] == self.game().cards()[i].position()) {
 
-                            card1 = self.game().cards()[i].position();
+                            card1Pos = self.game().cards()[i];
                         }
-                        else if (pair[1].position == self.game().cards()[i].position()) {
+                        else if (pair[1] == self.game().cards()[i].position()) {
 
-                            card2 = self.game().cards()[i].position();
+                            card2Pos = self.game().cards()[i];
                         }
                     }
+
+                    console.log(card1);
+                    console.log(card2);
 
                     // if it was a match
                     if (self.game().successful_matches() != resp.successful_matches) {
@@ -336,18 +440,19 @@ var ViewModel = function () {
 
                         for (var i = 0; i < self.game().cards().length; i++) {
 
-                            if (pair[1].position == self.game().cards()[i].position()) {
+                            if (card2.position() == self.game().cards()[i].position()) {
 
                                 self.game().cards()[i].isFaceUp(true);
+                                break;
                             }
                         }
 
-                        self.lastMoveMessage("It's a match!");
+                        self.lastMoveMessage("a match!");
                     }
                     else {
                         // show "continue" button which flips cards over when clicked
 
-                        self.lastMoveMessage("It's not a match...");
+                        self.lastMoveMessage("not a match...");
                     }
                     
                     // update some game values

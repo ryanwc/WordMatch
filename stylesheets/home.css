@@ -41,6 +41,10 @@ body {
 	margin-bottom: 10px;
 }
 
+.fullwidth {
+	width: 100%;
+}
+
 /* cards */
 
 #cardsdiv {
@@ -86,7 +90,16 @@ body {
 
 /* stats */
 
+#statsdiv {
+	margin-top: 10px;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+}
 
+.stat {
+	text-align: center;
+}
 
 /* overrides */
 

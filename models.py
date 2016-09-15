@@ -74,7 +74,7 @@ class Game(ndb.Model):
         self.game_over = True
         self.put()
         # Add the game to the score 'board'
-        score = Score(game=self.key(), date=date.today(), won=won,
+        score = Score(game=self.key, date=date.today(), won=won,
             percentage_matched=(self.successful_matches/self.possible_matches),
             difficulty=(1-((self.max_attempts-self.possible_matches)/self.possible_matches)))
         score.put()
