@@ -62,15 +62,27 @@
 			<div class="card cardfacedown" data-bind="text: position, visible: !isFaceUp(), click: $root.flipCard"></div>
 			<!-- /ko -->
 
+			<div class="resultsdiv fullwidth">
+				<div class="fullwidth result" id="gameovermessage" data-bind="visible: game_over()">Game over!  You <span id="gameresult" data-bind="text: gameOverMessage"></span></div>
+				<div class="fullwidth result" id="currentmovemessage" data-bind="text: currentMoveMessage"></div>
+				<div class="fullwidth result" id="lastmove">Last move was... <span id="lastmovemessage" data-bind="text: lastMoveMessage"></span></div>
+				<div class="fullwidth" id="continuebuttondiv" data-bind="visible: waiting">
+					<button class="result" id="continuebutton" data-bind="click: resumeAfterMismatch">Press to continue</button>
+				</div>
+			</div>
+
 			<div class="fullwidth" id="statsdiv">
 				<div class="stat fullwidth">Number of match attempts: <span id="nummatchattempts" data-bind="text: num_match_attempts"></span></div>
 				<div class="stat fullwidth">Number of match attempts remaining: <span id="remainingmatchattempts" data-bind="text: remaining_attempts"></span></div>
 			</div>
-			<!-- /ko -->
 
-			<div id="cancelbuttondiv">
-				<button id="cancelgamebutton" data-bind="click: cancelGame">Cancel Game</button>
+			<div id="cancelbuttondiv" data-bind="visible: !game_over()">
+				<button id="cancelgamebutton" data-bind="click: $root.cancelGame">Cancel Game</button>
 			</div>
+			<div id="exitbuttondiv" data-bind="visible: game_over()">
+				<button id="exitgamebutton" data-bind="click: $root.exitGame">Exit Game</button>
+			</div>
+			<!-- /ko -->
 		</div>
 
 	</div>

@@ -11,7 +11,7 @@ from google.appengine.api import taskqueue
 
 from models import User, Game, Score, Language
 from models import StringMessage, NewGameForm, GameForm, MakeMoveForm,\
-    ScoreForms, LanguageForm, LanguageForms, UserForm
+    ScoreForms, LanguageForm, LanguageForms, UserForm, StringMessage
 from utils import get_by_urlsafe
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer(
@@ -163,6 +163,20 @@ class WordMatchApi(remote.Service):
         else:
             raise endpoints.NotFoundException('Game not found!')
 
+    @endpoints.method(request_message=GET_GAME_REQUEST,
+                      response_message=StringMessage,
+                      path='deletegame',
+                      name='delete_game',
+                      http_method='POST')
+    def delete_game(self, request):
+        """Delete the given game."""
+        game = get_by_urlsafe(request.urlsafe_game_key, Game)
+        if game:
+            game.key.delete()
+            return StringMessage(message="Game deleted.")
+        else:
+            raise endpoints.NotFoundException('Game not found!')
+
     @endpoints.method(request_message=MAKE_MOVE_REQUEST,
                       response_message=GameForm,
                       path='makemove',
@@ -199,16 +213,11 @@ class WordMatchApi(remote.Service):
             game.match_attempts.append([game.selected_card["position"], 
                                         game.cards[thisSelectedCardIndex]["position"]])
 
-            wasMatch = False
-            for x in range(0, len(game.cards)):
+            # determine if match
+            if game.selected_card["id"] == game.cards[thisSelectedCardIndex]["id"]:
 
-                if game.cards[x]["id"] == game.selected_card["id"]:
-
-                    game.successful_matches += 1
-                    wasMatch = True
-                    break
-
-            if not wasMatch:
+                game.successful_matches += 1
+            else:
 
                 game.cards[thisSelectedCardIndex]["isFlipped"] = False
                 game.selected_card["id"] = False

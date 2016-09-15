@@ -88,7 +88,23 @@ body {
 	margin-top: 10px;
 }
 
-/* stats */
+/* info */
+
+#resultsdiv {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+.result {
+	text-align: center;
+}
+
+#continuebuttondiv {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+}
 
 #statsdiv {
 	margin-top: 10px;

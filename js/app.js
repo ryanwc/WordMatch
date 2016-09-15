@@ -64,13 +64,43 @@ var Game = function(data) {
     self.waiting = ko.observable(false);
     self.selectedCardOne = ko.observable();
     self.selectedCardTwo = ko.observable();
+    self.currentMoveMessage = ko.observable("Select a card");
+    self.winStatus = ko.computed(function() {
 
-    self.stopWaiting = function () {
+        return self.successful_matches() == self.possible_matches();
+    });
+    self.gameOverMessage = ko.computed(function() {
+
+        if (self.game_over()) {
+
+            self.setCardsDisabled(true);
+
+            if (self.winStatus()) {
+                
+                return "win!";
+            }
+            else {
+
+                return "lose."
+            }
+        }
+    });
+
+    self.resumeAfterMismatch = function () {
 
         self.waiting(false);
+        self.resetSelectedCards();
+        self.currentMoveMessage("Select a card");
     }
 
+    self.resetSelectedCards = function () {
+
+        self.selectedCardOne();
+        self.selectedCardTwo();      
+    };
+
     self.setCardsDisabled = function (disable) {
+        // disable or enable cards if not already matched
 
         if (disable) {
 
@@ -103,6 +133,7 @@ var Game = function(data) {
         }
         else if (newMessage == "not a match...") {
 
+            console.log("Setting waiting true");
             self.waiting(true);
         }
     });
@@ -160,6 +191,18 @@ var Card = function (data) {
     self.isMatched.subscribe(function() {
 
         if (self.isMatched()) {
+
+            self.isDisabled(true);
+        }
+        else {
+
+            self.isDisabled(false);
+        }
+    });
+
+    self.isFaceUp.subscribe(function() {
+
+        if (self.isFaceUp()) {
 
             self.isDisabled(true);
         }
@@ -362,12 +405,43 @@ var ViewModel = function () {
 
         if (cancel) {
 
-            self.game(null);
-            self.selectingGame(true);
-            self.inputMatches(null);
-            self.inputMaxAttempts(null);
+            self.deleteGameFromServer(self.game().urlsafe_key());
+            self.endGame();
         }
-    }
+    };
+
+    self.exitGame = function() {
+
+        var exit = window.confirm("Really exit the game?");
+
+        if (exit) {
+
+            self.endGame();
+        }
+    };
+
+    self.endGame = function() {
+
+        self.game(null);
+        self.selectingGame(true);
+        self.inputMatches(null);
+        self.inputMaxAttempts(null);
+    };
+
+    self.deleteGameFromServer = function(urlsafe_game_key) {
+
+        var game_resource = {'resource': {'urlsafe_game_key': urlsafe_game_key}};
+
+        gapi.client.word_match.delete_game(game_resource).execute(function(resp) {
+
+            console.log(resp);
+
+            if (!resp.code) {
+
+                window.alert(resp.message);
+            }
+        });
+    };
 
     self.flipCard = function(card) {
 
@@ -401,6 +475,8 @@ var ViewModel = function () {
                         if (chosenCard.position == self.game().cards()[i].position()) {
 
                             self.game().cards()[i].isFaceUp(true);
+                            self.game().selectedCardOne(self.game().cards()[i]);
+                            self.game().currentMoveMessage("Pick the card that matches the last chosen card");
                             break;
                         }
                     }
@@ -421,13 +497,15 @@ var ViewModel = function () {
 
                     for (var i = 0; i < self.game().cards().length; i++) {
 
+                        console.log(self.game().cards()[i].position());
+
                         if (pair[0] == self.game().cards()[i].position()) {
 
-                            card1Pos = self.game().cards()[i];
+                            card1 = self.game().cards()[i];
                         }
                         else if (pair[1] == self.game().cards()[i].position()) {
 
-                            card2Pos = self.game().cards()[i];
+                            card2 = self.game().cards()[i];
                         }
                     }
 
@@ -435,9 +513,12 @@ var ViewModel = function () {
                     console.log(card2);
 
                     // if it was a match
+                    console.log("client matches " + self.game().successful_matches());
+                    console.log("server matches " + resp.successful_matches);
                     if (self.game().successful_matches() != resp.successful_matches) {
                         // keep cards flipped up
 
+                        console.log("match");
                         for (var i = 0; i < self.game().cards().length; i++) {
 
                             if (card2.position() == self.game().cards()[i].position()) {
@@ -447,16 +528,25 @@ var ViewModel = function () {
                             }
                         }
 
-                        self.lastMoveMessage("a match!");
+                        // reset so triggers subscriptions even if same value as last move
+                        self.game().lastMoveMessage("");
+                        self.game().lastMoveMessage("a match!");
                     }
                     else {
                         // show "continue" button which flips cards over when clicked
+                        console.log("not match");
 
-                        self.lastMoveMessage("not a match...");
+                        // reset so triggers subscriptions even if same value as last move
+                        self.game().lastMoveMessage("");
+                        self.game().lastMoveMessage("not a match...");
                     }
                     
-                    // update some game values
+                    // update some values
+                    card2.isFaceUp(true);
+                    self.game().currentMoveMessage("");
+                    self.game().selectedCardTwo(card2);
                     self.game().match_attempts(resp.match_attempts);
+                    self.game().num_match_attempts(resp.num_match_attempts);
                     self.game().successful_matches(resp.successful_matches);
                     self.game().game_over(resp.game_over);
                 }
