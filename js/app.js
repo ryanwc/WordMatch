@@ -133,7 +133,6 @@ var Game = function(data) {
         }
         else if (newMessage == "not a match...") {
 
-            console.log("Setting waiting true");
             self.waiting(true);
         }
     });
@@ -517,8 +516,6 @@ var ViewModel = function () {
 
         gapi.client.word_match.make_move(move_resource).execute(function(resp) {
 
-            console.log(resp);
-
             if (!resp.code) {
 
                 self.game().match_in_progress(resp.match_in_progress);
@@ -548,8 +545,6 @@ var ViewModel = function () {
                     // they want to move on (i.e., give time for user to study a wrong answer)
                     var pair = JSON.parse(resp.match_attempts)[self.game().num_match_attempts()];
 
-                    console.log("Second");
-                    console.log(pair);
                     // get the cards
                     var card1;
                     var card2;
@@ -568,16 +563,10 @@ var ViewModel = function () {
                         }
                     }
 
-                    console.log(card1);
-                    console.log(card2);
-
                     // if it was a match
-                    console.log("client matches " + self.game().successful_matches());
-                    console.log("server matches " + resp.successful_matches);
                     if (self.game().successful_matches() != resp.successful_matches) {
                         // keep cards flipped up
 
-                        console.log("match");
                         for (var i = 0; i < self.game().cards().length; i++) {
 
                             if (card2.position() == self.game().cards()[i].position()) {
@@ -593,7 +582,6 @@ var ViewModel = function () {
                     }
                     else {
                         // show "continue" button which flips cards over when clicked
-                        console.log("not match");
 
                         // reset so triggers subscriptions even if same value as last move
                         self.game().lastMoveMessage("");

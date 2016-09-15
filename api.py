@@ -10,7 +10,7 @@ from google.appengine.api import memcache
 from google.appengine.api import taskqueue
 
 from models import User, Game, Score, Language
-from models import StringMessage, NewGameForm, GameForm, MakeMoveForm,\
+from models import StringMessage, NewGameForm, GameForm,\
     ScoreForms, LanguageForm, LanguageForms, GameForms, UserForm,\
     UserForms, StringMessage
 from utils import get_by_urlsafe
@@ -39,7 +39,8 @@ MEMCACHE_MATCH_ATTEMPTS = 'MATCH_ATTEMPTS'
 
 @endpoints.api(name='word_match', version='v1')
 class WordMatchApi(remote.Service):
-    """Game API"""
+    """Game API
+    """
     @endpoints.method(request_message=USER_REQUEST,
                       response_message=UserForm,
                       path='user',
@@ -47,7 +48,8 @@ class WordMatchApi(remote.Service):
                       http_method='POST')
     def create_user_from_google(self, request):
         """Create a User from Google account info. 
-        Requires a unique Google account id."""
+        Requires a unique Google account id.
+        """
 
         if User.query(User.google_id == request.user_google_id).get():
             raise endpoints.ConflictException(
@@ -65,7 +67,8 @@ class WordMatchApi(remote.Service):
                       name='get_user_from_google_id',
                       http_method='POST')
     def get_user_from_google_id(self, request):
-        """Get a user by the user's google account ID"""
+        """Get a user by the user's google account ID
+        """
         user = User.query(User.google_id == request.user_google_id).get()
         
         if not user:
@@ -80,7 +83,8 @@ class WordMatchApi(remote.Service):
                       name='get_user_games',
                       http_method='POST')
     def get_user_games(self, request):
-        """Get a user's scores by user key"""
+        """Get a user's scores by user key
+        """
         user = get_by_urlsafe(request.urlsafe_user_key, User)
         
         if not user:
@@ -100,7 +104,8 @@ class WordMatchApi(remote.Service):
                       name='create_game',
                       http_method='POST')
     def create_game(self, request):
-        """Creates new game"""
+        """Creates new game
+        """
         user = get_by_urlsafe(request.user_key, User)
 
         if not user:
@@ -177,7 +182,8 @@ class WordMatchApi(remote.Service):
                       name='get_game',
                       http_method='GET')
     def get_game(self, request):
-        """Return the current game state."""
+        """Return the current game state.
+        """
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
         if game:
             return game.to_form()
@@ -185,12 +191,26 @@ class WordMatchApi(remote.Service):
             raise endpoints.NotFoundException('Game not found!')
 
     @endpoints.method(request_message=REQUEST_BY_GAME_KEY,
+                      response_message=GameForm,
+                      path='getgamehistory',
+                      name='get_game_history',
+                      http_method='GET')
+    def get_game_history(self, request):
+        """Return the current game state.
+        NOTE: Just calls 'get_game'.  This is because a game object
+        already contains all moves in order, so there is currently no reason
+        to use this method and it is only here because Udacity required it by name.
+        """
+        return get_game(self, request)
+
+    @endpoints.method(request_message=REQUEST_BY_GAME_KEY,
                       response_message=StringMessage,
                       path='cancelgame',
                       name='cancel_game',
                       http_method='POST')
     def cancel_game(self, request):
-        """Cancel (delete) the given game."""
+        """Cancel (delete) the given game.
+        """
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
 
         if not game:
@@ -209,7 +229,8 @@ class WordMatchApi(remote.Service):
                       name='make_move',
                       http_method='PUT')
     def make_move(self, request):
-        """Handler for attempted match. Returns updated game state."""
+        """Handler for attempted match. Returns updated game state.
+        """
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
 
         if not game:
@@ -275,7 +296,8 @@ class WordMatchApi(remote.Service):
                       name='get_high_scores',
                       http_method='POST')
     def get_high_scores(self, request):
-        """Return high scores"""
+        """Return high scores
+        """
         scores = Score.query().order(-Score.percentage_matched, -Score.difficulty)
 
         if not scores:
@@ -293,7 +315,8 @@ class WordMatchApi(remote.Service):
                       name='get_user_scores',
                       http_method='POST')
     def get_user_scores(self, request):
-        """Returns all of an individual User's scores"""
+        """Returns all of an individual User's scores
+        """
         user = get_by_urlsafe(request.urlsafe_user_key, User)
         if not user:
             raise endpoints.NotFoundException(
@@ -310,7 +333,8 @@ class WordMatchApi(remote.Service):
                       name='get_user_rankings',
                       http_method='GET')
     def get_user_rankings(self, request):
-        """Returns users ordered by ranking"""
+        """Returns users ordered by ranking
+        """
         users = User.query().order(-User.win_percentage, -User.average_difficulty)
 
         if not users:
@@ -323,7 +347,8 @@ class WordMatchApi(remote.Service):
                       name='get_languages',
                       http_method='GET')
     def get_languages(self, request):
-        """Returns all available languages"""
+        """Returns all available languages
+        """
         return LanguageForms(items=[language.to_form() for language in Language.query()])
 
     # average attempts is probably a dumb metric to cache but at least the code is here
@@ -332,13 +357,15 @@ class WordMatchApi(remote.Service):
                       name='get_average_attempts_remaining',
                       http_method='GET')
     def get_average_attempts(self, request):
-        """Get the cached average moves remaining"""
+        """Get the cached average moves remaining
+        """
         return StringMessage(message=memcache.\
             get(MEMCACHE_MATCH_ATTEMPTS) or '')
 
     @staticmethod
     def _cache_average_attempts():
-        """Populates memcache with the average match attempts of each completed Game"""
+        """Populates memcache with the average match attempts of each completed Game
+        """
         games = Game.query(Game.game_over == True).fetch()
 
         if games:

@@ -14,7 +14,7 @@ class User(ndb.Model):
     """User profile"""
     name = ndb.StringProperty(required=True)
     google_id = ndb.StringProperty(required=True)
-    email = ndb.StringProperty(required=True)
+    email = ndb.StringProperty()
     win_percentage = ndb.FloatProperty()
     average_difficulty = ndb.FloatProperty()
 
@@ -134,7 +134,7 @@ class UserForm(messages.Message):
     urlsafe_key = messages.StringField(1, required=True)
     name = messages.StringField(2, required=True)
     google_id = messages.StringField(3, required=True)
-    email = messages.StringField(4, required=True)
+    email = messages.StringField(4)
     win_percentage = messages.FloatField(5)
     average_difficulty = messages.FloatField(6)
 
@@ -233,5 +233,5 @@ if not Language.query().get():
 
 if not User.query().get():
 
-    defaultUser = User(name="Default User", google_id="-1", email="None")
+    defaultUser = User(name="Default User", google_id="-1", email=None)
     defaultUser.put()
