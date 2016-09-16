@@ -44,7 +44,14 @@ class Language(ndb.Model):
                             cards=json.dumps(self.cards))
 
 class Game(ndb.Model):
-    """Game object"""
+    """Game object
+    match_attempts holds a list of all moves made, allowing replaying the match like 
+    a replayed chess game.  match_attempts is an ordered array of moves with the form:
+    [[selectedcardposition1, selectedcardposition2], 
+     [selectedcardposition1, selectedcardposition2], 
+     etc
+    ]
+    """
     possible_matches = ndb.IntegerProperty(required=True)
     successful_matches = ndb.IntegerProperty(required=True)
     num_match_attempts = ndb.IntegerProperty(required=True)

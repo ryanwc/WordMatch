@@ -1,0 +1,18 @@
+This document documents the decisions I made on modifying the skeleton Guess a Number app into the complete Word Match app.
+
+- What additional properties did you add to your models and why?
+
+	- Language model: I added a completely new model — Language — because I needed an entity that could hold all of the flashcards for a given language.
+	- User model: I added ‘google_id’ to User model so I could use OAuth with Google more efficiently.  I also added some properties to help rank users.
+	- Game model: I changed the Game model considerably because Word Match is pretty different from Guess a Number.  
+		- Each of the properties I added was meant to track a specific portion of the game’s state, without being redundant.  For example:
+			- I added ‘successful_matches’ to keep track of how many matches the user made, but did not add unsuccessful_matches because this data point can be calculated given the other properties.  
+			- I added ‘selected_card’ to keep track of the first selected card in a move ‘pair’.
+			- I added ‘cards’ to keep track of the specific cards that were chosen from the language deck for this game, including their unique position within this game board.
+		- I also added a ‘match_attempts’ property which stores a game ‘history’ so the game can be replayed like a chess match.
+	- I modified the Score model to include my metrics for ordering scores — ‘percentage_matched’ and ‘difficulty’.
+	
+- What were some of the trade-offs or struggles you faced when implementing the new game logic?
+
+	One big challenge was how to represent a “move” in the data store.  At first I wanted a ‘move’ to just be one complete turn of flipping two cards over, but then I realized this would not work because I would not be able to do a “replay” of the game like chess — for that, the Game model would need to know which card was selected first on each turn.  So, implementing the logic for a move was tricky and required adding some extra properties to cards that I didn’t anticipate at first (e.g., giving each card in the game an isFlipped property).
+	One noteworthy trade off I made was storing the cards in the Language model as a PickleProperty instead of creating a separate Card model and using keys for each card when needed.  The latter would be the way to go if reading and writing costs were no issue (it’s probably easier, cleaner, and more transparent to keep track of a Card entities rather than a dictionary).  But, due to cost structure of Google Data Store, reading and writing lots of Card entities (as my game would require) would be prohibitively expensive.  So, I needed to get creative and store all cards as a dictionary, which lets me store potentially thousands of cards for just 1 (or close to 1) read/write each time needed.
