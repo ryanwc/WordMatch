@@ -10,7 +10,7 @@ from google.appengine.api import memcache
 from google.appengine.api import taskqueue
 
 from models import User, Game, Score, Language
-from models import StringMessage, NewGameForm, GameForm,\
+from models import StringMessage, GameForm,\
     ScoreForms, LanguageForm, LanguageForms, GameForms, UserForm,\
     UserForms, StringMessage
 from utils import get_by_urlsafe
@@ -19,7 +19,7 @@ NEW_GAME_REQUEST = endpoints.ResourceContainer(
     language = messages.StringField(1),
     possible_matches = messages.IntegerField(2),
     max_attempts = messages.IntegerField(3),
-    user_key = messages.StringField(4),)
+    urlsafe_user_key = messages.StringField(4),)
 REQUEST_BY_GAME_KEY = endpoints.ResourceContainer(
         urlsafe_game_key=messages.StringField(1),)
 MAKE_MOVE_REQUEST = endpoints.ResourceContainer(
@@ -106,7 +106,7 @@ class WordMatchApi(remote.Service):
     def create_game(self, request):
         """Creates new game
         """
-        user = get_by_urlsafe(request.user_key, User)
+        user = get_by_urlsafe(request.urlsafe_user_key, User)
 
         if not user:
             raise endpoints.ForbiddenException(
@@ -114,15 +114,16 @@ class WordMatchApi(remote.Service):
 
         language = Language.query(Language.name == request.language).get()
 
-        if not language.name in ["Spanish", "German", "Thai"]:
-            raise ValueError('Language must be Spanish, German, or Thai')
+        if not language:
+            raise endpoints.NotFoundException(
+                    'The requested language does not exist in the server.')
 
         if request.possible_matches > 20 or request.possible_matches < 1:
-            raise ValueError('Possible matches must be at least '\
+            raise endpoints.ForbiddenException('Possible matches must be at least '\
                              '1 and at most 20')
 
         if not request.max_attempts >= request.possible_matches:
-            raise ValueError('Max attempts must be greater '\
+            raise endpoints.ForbiddenException('Max attempts must be greater '\
                              'than or equal to possible matches')
 
         cards = language.cards
@@ -180,7 +181,7 @@ class WordMatchApi(remote.Service):
                       response_message=GameForm,
                       path='getgame',
                       name='get_game',
-                      http_method='GET')
+                      http_method='POST')
     def get_game(self, request):
         """Return the current game state.
         """
@@ -194,7 +195,7 @@ class WordMatchApi(remote.Service):
                       response_message=GameForm,
                       path='getgamehistory',
                       name='get_game_history',
-                      http_method='GET')
+                      http_method='POST')
     def get_game_history(self, request):
         """Return the current game state.
         NOTE: Just calls 'get_game'.  This is because a game object
@@ -240,6 +241,10 @@ class WordMatchApi(remote.Service):
             return endpoints.ForbiddenException(
                     'Game already over!')
 
+        if game.cards[request.flipped_card_position]["isFlipped"]:
+            return endpoints.ForbiddenException(
+                'That card is already face up!')
+
         # get the selected and previously selected card positions
         # [whole method ripe for refactoring]
         # remember, x = a card's position, just renaming some variables
@@ -254,10 +259,6 @@ class WordMatchApi(remote.Service):
 
         # evaluate a match attempt if appropriate
         if game.match_in_progress:
-
-            if thisSelectedCardIndex == previouslySelectedCardIndex:
-                return endpoints.ForbiddenException(
-                    'Already selected that card!')
 
             # record the match attempt
             game.num_match_attempts += 1
@@ -351,13 +352,13 @@ class WordMatchApi(remote.Service):
         """
         return LanguageForms(items=[language.to_form() for language in Language.query()])
 
-    # average attempts is probably a dumb metric to cache but at least the code is here
+    # average attempts is probably a not-great metric to cache but at least the code is here
     @endpoints.method(response_message=StringMessage,
                       path='games/average_attempts',
                       name='get_average_attempts_remaining',
                       http_method='GET')
     def get_average_attempts(self, request):
-        """Get the cached average moves remaining
+        """Get the cached average attempts for every game
         """
         return StringMessage(message=memcache.\
             get(MEMCACHE_MATCH_ATTEMPTS) or '')

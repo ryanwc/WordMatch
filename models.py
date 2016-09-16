@@ -138,6 +138,7 @@ class UserForm(messages.Message):
     win_percentage = messages.FloatField(5)
     average_difficulty = messages.FloatField(6)
 
+
 class GameForm(messages.Message):
     """GameForm for outbound game state information"""
     urlsafe_key = messages.StringField(1, required=True)
@@ -152,14 +153,6 @@ class GameForm(messages.Message):
     cards = messages.StringField(10, required=True)
     match_in_progress = messages.BooleanField(11, required=True)
     selected_card = messages.StringField(12, required=True)
-
-
-class NewGameForm(messages.Message):
-    """Used to create a new game"""
-    user_name = messages.StringField(1, required=True)
-    possible_matches = messages.IntegerField(2, required=True)
-    max_attempts = messages.IntegerField(3, required=True)
-    language = messages.StringField(4, required=True)
 
 
 class ScoreForm(messages.Message):

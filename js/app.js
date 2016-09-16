@@ -264,6 +264,7 @@ var ViewModel = function () {
     self.inputMaxAttempts = ko.observable();
 
     self.getUserGames = function() {
+        // optionally
 
         var get_games_resource = {'resource': {'urlsafe_user_key': self.user().urlsafe_key(),
                                                'active': true
@@ -347,8 +348,6 @@ var ViewModel = function () {
 
         gapi.client.word_match.get_high_scores().execute(function(resp) {
 
-            console.log(resp);
-
             if (!resp.code) {
 
             }
@@ -358,8 +357,6 @@ var ViewModel = function () {
     self.getUserRankings = function() {
 
         gapi.client.word_match.get_user_rankings().execute(function(resp) {
-
-            console.log(resp);
 
             if (!resp.code) {
 
@@ -432,7 +429,7 @@ var ViewModel = function () {
         var game_resource = {'resource': {'language': self.inputLanguage().name(), 
                                           'possible_matches': self.inputMatches(),
                                           'max_attempts': self.inputMaxAttempts(),
-                                          'user_key': self.user().urlsafe_key()}
+                                          'urlsafe_user_key': self.user().urlsafe_key()}
                             }
 
         gapi.client.word_match.create_game(game_resource).execute(function(resp) {
@@ -492,8 +489,6 @@ var ViewModel = function () {
 
         gapi.client.word_match.cancel_game(game_resource).execute(function(resp) {
 
-            console.log(resp);
-
             if (!resp.code) {
 
                 window.alert(resp.message);
@@ -550,8 +545,6 @@ var ViewModel = function () {
                     var card2;
 
                     for (var i = 0; i < self.game().cards().length; i++) {
-
-                        console.log(self.game().cards()[i].position());
 
                         if (pair[0] == self.game().cards()[i].position()) {
 

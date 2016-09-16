@@ -21,7 +21,7 @@ handlers:
 - url: /tasks/cache_average_attempts
   script: app.app
 
-- url: /crons/send_reminder
+- url: /crons/send_incomplete_reminder
   script: app.app
 
 - url: (.*)

@@ -2,7 +2,7 @@
 """
 Server-side WordMatch application.
 
-Written for Google App Engine. Persist data to Google Datastore.
+Written for Google App Engine.
 """
 
 import os, webapp2, jinja2, json
