@@ -12,32 +12,26 @@ from google.appengine.api import taskqueue
 from models import User, Game, Score, Language
 from models import StringMessage, GameForm,\
     ScoreForms, LanguageForm, LanguageForms, GameForms, UserForm,\
-    UserForms, StringMessage
+    UserForms, StringMessage, RequestByGoogleID, UserRequest, NewGameRequest,\
+    RequestByGameKey, MakeMoveRequest, RequestByUserKey,\
+    GamesByUserIDRequest, ScoreRequest
 from utils import get_by_urlsafe
 
-NEW_GAME_REQUEST = endpoints.ResourceContainer(
-    language = messages.StringField(1),
-    possible_matches = messages.IntegerField(2),
-    max_attempts = messages.IntegerField(3),
-    urlsafe_user_key = messages.StringField(4),)
-REQUEST_BY_GAME_KEY = endpoints.ResourceContainer(
-        urlsafe_game_key=messages.StringField(1),)
-MAKE_MOVE_REQUEST = endpoints.ResourceContainer(
-    urlsafe_game_key=messages.StringField(1),
-    flipped_card_position=messages.IntegerField(2),)
-USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
-                                           user_google_id=messages.StringField(2),
-                                           email=messages.StringField(3),)
-REQUEST_BY_GOOGLE_ID = endpoints.ResourceContainer(user_google_id=messages.StringField(1),)
-REQUEST_BY_USER_KEY = endpoints.ResourceContainer(urlsafe_user_key=messages.StringField(1),)
-GAMES_BY_USER_ID_REQUEST = endpoints.ResourceContainer(urlsafe_user_key=messages.StringField(1),
-                                                       active=messages.BooleanField(2),)
-SCORE_REQUEST = endpoints.ResourceContainer(limit=messages.IntegerField(1),)
 
+NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameRequest)
+REQUEST_BY_GAME_KEY = endpoints.ResourceContainer(RequestByGameKey)
+MAKE_MOVE_REQUEST = endpoints.ResourceContainer(MakeMoveRequest)
+USER_REQUEST = endpoints.ResourceContainer(UserRequest)
+REQUEST_BY_GOOGLE_ID = endpoints.ResourceContainer(RequestByGoogleID)
+REQUEST_BY_USER_KEY = endpoints.ResourceContainer(RequestByUserKey)
+GAMES_BY_USER_ID_REQUEST = endpoints.ResourceContainer(GamesByUserIDRequest)
+SCORE_REQUEST = endpoints.ResourceContainer(ScoreRequest)
 
 MEMCACHE_MATCH_ATTEMPTS = 'MATCH_ATTEMPTS'
 
-@endpoints.api(name='word_match', version='v1')
+@endpoints.api(name='word_match', version='v1', 
+    allowed_client_ids=['510381281726-4dbug0nd52nj5eq6q1mopccr6ggs542u.apps.googleusercontent.com'],
+    auth_level=endpoints.AUTH_LEVEL.OPTIONAL_CONTINUE)
 class WordMatchApi(remote.Service):
     """Game API
     """
@@ -69,13 +63,20 @@ class WordMatchApi(remote.Service):
     def get_user_from_google_id(self, request):
         """Get a user by the user's google account ID
         """
+
+        logging.info(request)
+        logging.info(request.user_google_id)
         user = User.query(User.google_id == request.user_google_id).get()
         
+        logging.info(user)
+
         if not user:
             message = 'No user with the id "%s" exists.' % request.user_google_id
             raise endpoints.NotFoundException(message)
 
-        return user.to_form()
+        to_form = user.to_form()
+        logging.info(to_form)
+        return to_form
 
     @endpoints.method(request_message=GAMES_BY_USER_ID_REQUEST,
                       response_message=GameForms,
@@ -118,10 +119,13 @@ class WordMatchApi(remote.Service):
             raise endpoints.NotFoundException(
                     'The requested language does not exist in the server.')
 
+        logging.info(request.possible_matches)
+
         if request.possible_matches > 20 or request.possible_matches < 1:
             raise endpoints.ForbiddenException('Possible matches must be at least '\
                              '1 and at most 20')
 
+        logging.info(request.max_attempts)
         if not request.max_attempts >= request.possible_matches:
             raise endpoints.ForbiddenException('Max attempts must be greater '\
                              'than or equal to possible matches')
@@ -141,16 +145,21 @@ class WordMatchApi(remote.Service):
 
             card_ids[str(idToUse)] = True
 
+        logging.info(card_ids)
         game_cards = []
 
         # get the cards
+        logging.info(cards)
         for x in range(0, len(cards)):
 
             if str(cards[x]["id"]) in card_ids:
 
+                logging.info(cards[x])
                 game_cards.append(cards[x])
 
         random.shuffle(game_cards)
+
+        logging.info(game_cards)
 
         # assign the position for board layout
         for x in range(0, len(game_cards)):
@@ -376,6 +385,5 @@ class WordMatchApi(remote.Service):
             average = float(total_match_attempts)/count
             memcache.set(MEMCACHE_MATCH_ATTEMPTS,
                          'The average match attempts is {:.2f}'.format(average))
-
 
 api = endpoints.api_server([WordMatchApi])

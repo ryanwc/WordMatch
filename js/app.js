@@ -373,8 +373,10 @@ var ViewModel = function () {
 
         var id_resource = {'resource': {'user_google_id': "-1"}};
 
+        console.log("getting user " + id_resource.resource.user_google_id);
         gapi.client.word_match.get_user_from_google_id(id_resource).execute(function(resp) {
 
+            console.log(resp);
             if (!resp.code) {
 
                 self.user(new User(resp));
@@ -434,6 +436,7 @@ var ViewModel = function () {
 
         gapi.client.word_match.create_game(game_resource).execute(function(resp) {
 
+            console.log(resp);
             if (!resp.code) {
 
                 resp.cards = JSON.parse(resp.cards);
@@ -627,6 +630,7 @@ var ViewModel = function () {
 
     self.loadEndpointsAPI = function() {
 
+        gapi.client.setApiKey(apiKey);
         gapi.client.load('word_match', 'v1', self.initStartingAPIValues, '/_ah/api');
     };
 
@@ -644,7 +648,7 @@ var ViewModel = function () {
 *
 */
 
-var apiKey = 'AIzaSyDjHnyHtyK_tM8N8VTznuITwakfO5DBYNo';
+var apiKey = 'AIzaSyAl1M7PF5Z3yiI9nfRA1uQzc67qeuPcB7Y';
 var clientId = '510381281726-4dbug0nd52nj5eq6q1mopccr6ggs542u.apps.googleusercontent.com';
 var scopes = 'profile';
 var signinButton = document.getElementById('signin-button');
@@ -652,7 +656,6 @@ var signoutButton = document.getElementById('signout-button');
 
 function initAuth() {
 
-    gapi.client.setApiKey(apiKey);
     gapi.auth2.init({
         
         client_id: clientId,
@@ -696,6 +699,8 @@ function updateSigninStatus() {
         var google_user_name = gapi.auth2.getAuthInstance().currentUser.Ab.w3.ig;
         var google_id = gapi.auth2.getAuthInstance().currentUser.Ab.El;
         var email = gapi.auth2.getAuthInstance().currentUser.Ab.w3.U3;
+
+        console.log(google_user_name + google_id + email);
 
         viewModel.signinUserFromGoogle(google_user_name, google_id, email);
 

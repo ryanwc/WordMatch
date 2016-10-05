@@ -200,6 +200,45 @@ class StringMessage(messages.Message):
     """StringMessage-- outbound (single) string message"""
     message = messages.StringField(1, required=True)
 
+class RequestByGoogleID(messages.Message):
+    """A request by user google ID"""
+    user_google_id = messages.StringField(1, required=True)
+
+class UserRequest(messages.Message):
+    """A request with user info"""
+    user_name = messages.StringField(1)
+    user_google_id = messages.StringField(2)
+    email = messages.StringField(3)
+
+class NewGameRequest(messages.Message):
+    """A request with info about a new game"""
+    language = messages.StringField(1)
+    possible_matches = messages.IntegerField(2)
+    max_attempts = messages.IntegerField(3)
+    urlsafe_user_key = messages.StringField(4)
+
+class RequestByGameKey(messages.Message):
+    """A request by game key"""
+    urlsafe_game_key=messages.StringField(1)
+
+class MakeMoveRequest(messages.Message):
+    """A request with info to make a move"""
+    urlsafe_game_key = messages.StringField(1)
+    flipped_card_position=messages.IntegerField(2)
+
+class RequestByUserKey(messages.Message):
+    """A request by user key"""
+    urlsafe_user_key=messages.StringField(1)
+
+class GamesByUserIDRequest(messages.Message):
+    """A request for games by user ID"""
+    urlsafe_user_key=messages.StringField(1)
+    active=messages.BooleanField(2)
+
+class ScoreRequest(messages.Message):
+    """A request for scores"""
+    limit=messages.IntegerField(1)
+
 
 # populate the datastore with the Anki cards
 # and a default user if nothing is there yet
